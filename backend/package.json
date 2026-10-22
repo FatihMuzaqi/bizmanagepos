@@ -1,0 +1,53 @@
+{
+  "name": "bizmanage-backend",
+  "version": "1.0.0",
+  "description": "BizManage Multi-tenant SaaS Management & POS Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "migrate": "npx sequelize-cli db:migrate",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+    "seed": "npx sequelize-cli db:seed:all",
+    "seed:prod": "npx sequelize-cli db:seed:all",
+    "seed:dev": "node scripts/seedDemoAccount.js",
+    "seed:undo": "npx sequelize-cli db:seed:undo:all",
+    "backup": "node scripts/backupDatabase.js",
+    "restore": "node scripts/restoreDatabase.js",
+    "db:clean": "node scripts/resetDatabase.js",
+    "db:reset": "node scripts/resetDatabase.js",
+    "test:backup": "node scripts/verifyBackupAndRestore.js",
+    "test:security": "node tests/testSecurityAndAudit.js",
+    "test": "node tests/testFoundation.js"
+  },
+  "keywords": [
+    "saas",
+    "multi-tenant",
+    "pos",
+    "express",
+    "sequelize",
+    "mysql",
+    "production-ready"
+  ],
+  "author": "Google Antigravity Advanced Agentic Team",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.0.0",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "midtrans-client": "^1.4.3",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.12.0",
+    "sequelize": "^6.37.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "sequelize-cli": "^6.6.2"
+  }
+}
