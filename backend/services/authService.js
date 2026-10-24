@@ -5,6 +5,7 @@ const {
   Outlet, 
   UserOutlet, 
   Role,
+  Unit,
   sequelize 
 } = require('../models');
 const { hashPassword, comparePassword } = require('../utils/password');
@@ -80,6 +81,18 @@ const registerUser = async (payload) => {
 
     // Initialize Default Roles (Admin & Cashier) for this business
     await initializeDefaultRolesForBusiness(business.id, t);
+
+    // Initialize Default Measurement Units for this business
+    const defaultUnits = [
+      { business_id: business.id, name: 'Gram', symbol: 'gr', is_active: true },
+      { business_id: business.id, name: 'Milliliter', symbol: 'ml', is_active: true },
+      { business_id: business.id, name: 'Pieces', symbol: 'pcs', is_active: true },
+      { business_id: business.id, name: 'Kilogram', symbol: 'kg', is_active: true },
+      { business_id: business.id, name: 'Liter', symbol: 'L', is_active: true },
+      { business_id: business.id, name: 'Cup', symbol: 'cup', is_active: true },
+      { business_id: business.id, name: 'Sachet', symbol: 'sct', is_active: true }
+    ];
+    await Unit.bulkCreate(defaultUnits, { transaction: t });
 
     // Provision Free Trial Subscription (14 Days)
     const { createTrialSubscription } = require('./subscriptionService');

@@ -34,9 +34,13 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   /// Create Unit
-  Future<void> createUnit(String name, String symbol) async {
-    await ApiClient.post(ApiEndpoints.units, body: {'name': name, 'symbol': symbol});
+  Future<Map<String, dynamic>?> createUnit(String name, String symbol) async {
+    final res = await ApiClient.post(ApiEndpoints.units, body: {'name': name, 'symbol': symbol});
     await fetchUnits();
+    if (res is Map<String, dynamic>) {
+      return res;
+    }
+    return null;
   }
 
   /// Fetch Ingredients

@@ -20,6 +20,21 @@ const listUnits = async (businessId, query = {}) => {
     ];
   }
 
+  // Auto-seed standard units if this business has 0 units
+  const totalUnits = await Unit.count({ where: { business_id: businessId } });
+  if (totalUnits === 0) {
+    const defaultUnits = [
+      { business_id: businessId, name: 'Gram', symbol: 'gr', is_active: true },
+      { business_id: businessId, name: 'Milliliter', symbol: 'ml', is_active: true },
+      { business_id: businessId, name: 'Pieces', symbol: 'pcs', is_active: true },
+      { business_id: businessId, name: 'Kilogram', symbol: 'kg', is_active: true },
+      { business_id: businessId, name: 'Liter', symbol: 'L', is_active: true },
+      { business_id: businessId, name: 'Cup', symbol: 'cup', is_active: true },
+      { business_id: businessId, name: 'Sachet', symbol: 'sct', is_active: true }
+    ];
+    await Unit.bulkCreate(defaultUnits);
+  }
+
   const units = await Unit.findAll({
     where,
     order: [['name', 'ASC']]

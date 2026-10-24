@@ -160,6 +160,139 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     );
   }
 
+  // --- Add Unit Dialog ---
+  void _showAddUnitDialog([StateSetter? parentSetState, void Function(int newUnitId)? onUnitCreated]) {
+    final unitNameController = TextEditingController();
+    final unitSymbolController = TextEditingController();
+
+    // Quick presets for fast selection
+    final presets = [
+      {'name': 'Gram', 'symbol': 'gr'},
+      {'name': 'Milliliter', 'symbol': 'ml'},
+      {'name': 'Pieces', 'symbol': 'pcs'},
+      {'name': 'Kilogram', 'symbol': 'kg'},
+      {'name': 'Liter', 'symbol': 'L'},
+      {'name': 'Cup', 'symbol': 'cup'},
+      {'name': 'Sachet', 'symbol': 'sct'},
+      {'name': 'Botol', 'symbol': 'btl'},
+      {'name': 'Porsi', 'symbol': 'porsi'},
+      {'name': 'Pack', 'symbol': 'pack'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (unitCtx) => StatefulBuilder(
+        builder: (ctx, setUnitDialogState) {
+          final inv = context.read<InventoryProvider>();
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.straighten_rounded, color: AppColors.primary, size: 22),
+                SizedBox(width: 8),
+                Text('Tambah Satuan Ukuran', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SizedBox(
+              width: 400,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Pilih Rekomendasi Cepat (1-Klik):',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: presets.map((p) {
+                        return ActionChip(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          label: Text('${p['name']} (${p['symbol']})', style: const TextStyle(fontSize: 11)),
+                          onPressed: () {
+                            setUnitDialogState(() {
+                              unitNameController.text = p['name']!;
+                              unitSymbolController.text = p['symbol']!;
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const Divider(height: 24),
+                    TextField(
+                      controller: unitNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nama Satuan *',
+                        hintText: 'Contoh: Gram, Milliliter, Sachet',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: unitSymbolController,
+                      decoration: const InputDecoration(
+                        labelText: 'Simbol / Singkatan *',
+                        hintText: 'Contoh: gr, ml, sct, pcs',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(unitCtx).pop(), child: const Text('Batal')),
+              ElevatedButton(
+                onPressed: () async {
+                  final name = unitNameController.text.trim();
+                  final symbol = unitSymbolController.text.trim();
+                  if (name.isEmpty || symbol.isEmpty) return;
+
+                  try {
+                    final created = await inv.createUnit(name, symbol);
+                    if (unitCtx.mounted) {
+                      Navigator.of(unitCtx).pop();
+                    }
+
+                    int? createdId;
+                    if (created != null && created['id'] != null) {
+                      createdId = created['id'] as int;
+                    } else {
+                      final matched = inv.units.firstWhere(
+                        (u) => (u['symbol']?.toString().toLowerCase() == symbol.toLowerCase() ||
+                                u['name']?.toString().toLowerCase() == name.toLowerCase()),
+                        orElse: () => <String, dynamic>{},
+                      );
+                      if (matched.isNotEmpty && matched['id'] != null) {
+                        createdId = matched['id'] as int;
+                      }
+                    }
+
+                    if (createdId != null && onUnitCreated != null) {
+                      onUnitCreated(createdId);
+                    }
+
+                    if (mounted) {
+                      UiHelpers.showSnackBar(context, 'Satuan "$name ($symbol)" berhasil ditambahkan', isSuccess: true);
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      UiHelpers.showSnackBar(context, 'Gagal menambah satuan: $e', isError: true);
+                    }
+                  }
+                },
+                child: const Text('Simpan Satuan'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   // --- Add Ingredient Dialog ---
   void _showAddIngredientDialog() {
     final nameController = TextEditingController();
@@ -171,24 +304,54 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final units = context.read<InventoryProvider>().units;
+          final units = context.watch<InventoryProvider>().units;
 
           return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Text('Tambah Bahan Baku Baru'),
             content: SizedBox(
-              width: 400,
+              width: 420,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(
                       controller: nameController,
                       decoration: const InputDecoration(labelText: 'Nama Bahan Baku *', hintText: 'Contoh: Daun Teh Melati, Gula'),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Satuan Ukuran *',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () => _showAddUnitDialog(setDialogState, (newId) {
+                            setDialogState(() {
+                              selectedUnitId = newId;
+                            });
+                          }),
+                          icon: const Icon(Icons.add_circle_outline_rounded, size: 15, color: AppColors.primary),
+                          label: const Text('+ Satuan Baru', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
                     DropdownButtonFormField<int>(
                       value: selectedUnitId,
-                      decoration: const InputDecoration(labelText: 'Satuan Ukuran *'),
+                      isExpanded: true,
+                      hint: Text(units.isEmpty ? 'Belum ada satuan (Klik + Satuan Baru)' : 'Pilih Satuan (gram, ml, pcs...)'),
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
                       items: units.map((u) {
                         return DropdownMenuItem<int>(
                           value: u['id'] as int,
@@ -197,7 +360,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                       }).toList(),
                       onChanged: (val) => setDialogState(() => selectedUnitId = val),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     TextField(
                       controller: costController,
                       keyboardType: TextInputType.number,
@@ -217,7 +380,12 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
               ElevatedButton(
                 onPressed: () async {
-                  if (nameController.text.trim().isEmpty || selectedUnitId == null) return;
+                  if (nameController.text.trim().isEmpty || selectedUnitId == null) {
+                    if (mounted) {
+                      UiHelpers.showSnackBar(context, 'Nama bahan dan Satuan ukuran wajib diisi', isError: true);
+                    }
+                    return;
+                  }
                   Navigator.of(ctx).pop();
                   try {
                     await context.read<InventoryProvider>().createIngredient({
@@ -377,35 +545,95 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
   }
 
   Widget _buildIngredientsTab(InventoryProvider inv, bool canAdjust) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButton: canAdjust
-          ? FloatingActionButton(
-              onPressed: _showAddIngredientDialog,
-              tooltip: 'Tambah Bahan Baku',
-              child: const Icon(Icons.add),
-            )
-          : null,
-      body: inv.ingredients.isEmpty
-          ? const Center(child: Text('Belum ada bahan baku. Klik + untuk menambahkan.'))
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: inv.ingredients.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (ctx, index) {
-                final ing = inv.ingredients[index];
-                final unit = ing['unit']?['symbol'] ?? '';
-                final cost = ing['cost_per_unit'] ?? 0;
-
-                return Card(
-                  child: ListTile(
-                    title: Text(ing['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Biaya Pokok: ${CurrencyFormatter.format(cost)} / $unit'),
-                    trailing: Text('Satuan: $unit', style: const TextStyle(fontWeight: FontWeight.w600)),
+    return Column(
+      children: [
+        if (canAdjust)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showAddUnitDialog(),
+                    icon: const Icon(Icons.straighten_rounded, size: 18),
+                    label: const Text('Tambah Satuan'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
-                );
-              },
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _showAddIngredientDialog,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Tambah Bahan'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ),
+          ),
+        const Divider(height: 1),
+        Expanded(
+          child: inv.ingredients.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textTertiary),
+                      SizedBox(height: 12),
+                      Text(
+                        'Belum ada bahan baku tercatat',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textSecondary),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Klik tombol di atas untuk menambah satuan & bahan baku',
+                        style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: inv.ingredients.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (ctx, index) {
+                    final ing = inv.ingredients[index];
+                    final unit = ing['unit']?['symbol'] ?? '';
+                    final cost = ing['cost_per_unit'] ?? 0;
+
+                    return Card(
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: AppColors.primaryContainer,
+                          child: Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 20),
+                        ),
+                        title: Text(ing['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Biaya Pokok: ${CurrencyFormatter.format(cost)} / $unit'),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: Text(
+                            'Satuan: $unit',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 
