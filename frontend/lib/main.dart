@@ -22,13 +22,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.init();
 
-  debugPrint('🚀 [BizManage] Base API URL: ${AppConfig.baseUrl}');
+  debugPrint('🚀 [UsahaKu] Base API URL: ${AppConfig.baseUrl}');
 
-  runApp(const BizManageApp());
+  runApp(const UsahaKuApp());
 }
 
-class BizManageApp extends StatelessWidget {
-  const BizManageApp({super.key});
+class UsahaKuApp extends StatelessWidget {
+  const UsahaKuApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class BizManageApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
       ],
       child: MaterialApp(
-        title: 'BizManage POS & Business ERP',
+        title: 'UsahaKu POS & Business ERP',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: const AuthGate(),
@@ -53,6 +53,9 @@ class BizManageApp extends StatelessWidget {
     );
   }
 }
+
+/// Backward compatibility alias
+typedef BizManageApp = UsahaKuApp;
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -69,7 +72,7 @@ class AuthGate extends StatelessWidget {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Memuat BizManage...', style: TextStyle(fontWeight: FontWeight.w500)),
+              Text('Memuat UsahaKu...', style: TextStyle(fontWeight: FontWeight.w500)),
             ],
           ),
         ),

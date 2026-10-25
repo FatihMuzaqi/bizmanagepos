@@ -105,7 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Flexible(
                         child: Text(
-                          businessProvider.activeBusinessName ?? 'BizManage POS',
+                          businessProvider.activeBusinessName ?? 'UsahaKu POS',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
@@ -221,7 +221,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 final confirmed = await UiHelpers.showConfirmDialog(
                   context,
                   title: 'Keluar Akun?',
-                  content: 'Apakah Anda yakin ingin keluar dari sistem BizManage POS?',
+                  content: 'Apakah Anda yakin ingin keluar dari sistem UsahaKu POS?',
                 );
                 if (confirmed == true && context.mounted) {
                   await authProvider.logout();

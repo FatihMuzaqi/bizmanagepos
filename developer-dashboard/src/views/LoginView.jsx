@@ -47,7 +47,7 @@ export default function LoginView({ onLoginSuccess }) {
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Developer Cockpit</h1>
           <p className="text-sm text-slate-400 mt-1">
-            BizManage SaaS Superadmin & Pricing Engine
+            UsahaKu SaaS Superadmin & Pricing Engine
           </p>
         </div>
 

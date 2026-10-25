@@ -32,7 +32,7 @@ const subscriptionRoutes = require('./subscriptionRoutes');
 router.get('/health', (req, res) => {
   return res.status(200).json({
     success: true,
-    message: 'BizManage API is running smoothly',
+    message: 'UsahaKu API is running smoothly',
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()
   });

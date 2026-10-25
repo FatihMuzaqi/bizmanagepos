@@ -10,7 +10,7 @@ const startServer = async () => {
     // 2. Start Express HTTP Server
     const server = app.listen(env.PORT, () => {
       console.log(`====================================================`);
-      console.log(`🚀 BizManage Backend is running on port: ${env.PORT}`);
+      console.log(`🚀 UsahaKu Backend is running on port: ${env.PORT}`);
       console.log(`📡 Environment: ${env.NODE_ENV}`);
       console.log(`🔗 Health Check: http://localhost:${env.PORT}/api/v1/health`);
       console.log(`====================================================`);

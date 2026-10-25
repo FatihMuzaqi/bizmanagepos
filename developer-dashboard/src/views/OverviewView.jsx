@@ -228,7 +228,7 @@ export default function OverviewView({ onNavigate }) {
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Layers className="w-4 h-4 text-indigo-400" />
-              <span>Model Langganan Tunggal SaaS BizManage</span>
+              <span>Model Langganan Tunggal SaaS UsahaKu</span>
             </h3>
             <p className="text-xs text-slate-400">
               Sistem disederhanakan: Uji Coba Gratis (Bulan ke-1) dan Langganan Rp 30.000/bln (Bulan ke-2 dst) — Akses Semua Fitur

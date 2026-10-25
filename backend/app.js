@@ -115,7 +115,7 @@ app.get('/api/v1/health', healthCheckHandler);
 // 7. Welcome Route
 app.get('/', (req, res) => {
   res.status(200).json({
-    name: 'BizManage REST API',
+    name: 'UsahaKu REST API',
     version: '1.0.0',
     status: 'online',
     health: '/health'

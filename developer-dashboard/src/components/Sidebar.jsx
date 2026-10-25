@@ -29,7 +29,7 @@ export default function Sidebar({ currentTab, setCurrentTab, developer, onLogout
         </div>
         <div>
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-white text-base tracking-tight">BizManage</span>
+            <span className="font-bold text-white text-base tracking-tight">UsahaKu</span>
             <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
               DEV
             </span>

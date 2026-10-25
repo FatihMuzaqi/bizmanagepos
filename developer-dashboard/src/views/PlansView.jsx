@@ -106,7 +106,7 @@ export default function PlansView() {
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
-            Sistem SaaS BizManage disederhanakan tanpa tingkatan paket bertingkat. Pelaku UMKM mendapatkan <strong className="text-white">Uji Coba Gratis 1 Bulan</strong> dan selanjutnya <strong className="text-white">Langganan Rp 30.000 / Bulan</strong> dengan akses tak terbatas ke semua fitur (cabang, staf, menu, & transaksi).
+            Sistem SaaS UsahaKu disederhanakan tanpa tingkatan paket bertingkat. Pelaku UMKM mendapatkan <strong className="text-white">Uji Coba Gratis 1 Bulan</strong> dan selanjutnya <strong className="text-white">Langganan Rp 30.000 / Bulan</strong> dengan akses tak terbatas ke semua fitur (cabang, staf, menu, & transaksi).
           </p>
         </div>
 

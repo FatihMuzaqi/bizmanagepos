@@ -74,7 +74,7 @@ export default function UsersView() {
         <div>
           <h2 className="text-lg font-bold text-white tracking-tight">Monitoring Pengguna Terdaftar</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Total {totalCount} akun terdaftar di sistem BizManage
+            Total {totalCount} akun terdaftar di sistem UsahaKu
           </p>
         </div>
 

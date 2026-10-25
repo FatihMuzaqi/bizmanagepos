@@ -40,12 +40,12 @@ const createSnapTransaction = async ({ orderId, grossAmount, itemDetails, custom
           id: orderId,
           price: Math.round(Number(grossAmount)),
           quantity: 1,
-          name: 'Langganan BizManage POS'
+          name: 'Langganan UsahaKu POS'
         }
       ],
       customer_details: {
         first_name: customerDetails?.name || 'Customer',
-        email: customerDetails?.email || 'customer@bizmanage.id',
+        email: customerDetails?.email || 'customer@usahaku.id',
         phone: customerDetails?.phone || '08123456789'
       },
       credit_card: {

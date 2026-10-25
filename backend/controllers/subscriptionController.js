@@ -78,7 +78,7 @@ const paymentFinish = (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pembayaran Berhasil - BizManage POS</title>
+  <title>Pembayaran Berhasil - UsahaKu POS</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-4 font-sans">
@@ -90,7 +90,7 @@ const paymentFinish = (req, res) => {
     </div>
     <h1 class="text-2xl font-black text-white tracking-tight mb-2">Pembayaran Berhasil!</h1>
     <p class="text-sm text-slate-400 mb-6">
-      Terima kasih. Transaksi langganan BizManage POS Anda telah berhasil diverifikasi oleh gateway Midtrans.
+      Terima kasih. Transaksi langganan UsahaKu POS Anda telah berhasil diverifikasi oleh gateway Midtrans.
     </p>
     ${orderId ? `
     <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 mb-6 text-xs text-left">
@@ -101,7 +101,7 @@ const paymentFinish = (req, res) => {
       🎉 Langganan Anda telah aktif dan dapat langsung menikmati seluruh fitur kasir, cabang, & laporan.
     </div>
     <p class="text-xs text-slate-500">
-      Silakan tutup halaman ini dan kembali ke aplikasi <strong>BizManage POS</strong> Anda.
+      Silakan tutup halaman ini dan kembali ke aplikasi <strong>UsahaKu POS</strong> Anda.
     </p>
   </div>
 </body>
@@ -120,7 +120,7 @@ const paymentUnfinish = (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pembayaran Belum Selesai - BizManage POS</title>
+  <title>Pembayaran Belum Selesai - UsahaKu POS</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-4 font-sans">
@@ -140,7 +140,7 @@ const paymentUnfinish = (req, res) => {
       <span class="font-mono font-bold text-amber-400 text-sm break-all">${orderId}</span>
     </div>` : ''}
     <p class="text-xs text-slate-500">
-      Setelah menyelesaikan pembayaran, buka aplikasi <strong>BizManage POS</strong> dan klik <strong>Cek Status Pembayaran</strong>.
+      Setelah menyelesaikan pembayaran, buka aplikasi <strong>UsahaKu POS</strong> dan klik <strong>Cek Status Pembayaran</strong>.
     </p>
   </div>
 </body>
@@ -159,7 +159,7 @@ const paymentError = (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pembayaran Gagal - BizManage POS</title>
+  <title>Pembayaran Gagal - UsahaKu POS</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-4 font-sans">
@@ -179,7 +179,7 @@ const paymentError = (req, res) => {
       <span class="font-mono font-bold text-rose-400 text-sm break-all">${orderId}</span>
     </div>` : ''}
     <p class="text-xs text-slate-500">
-      Silakan buka kembali aplikasi <strong>BizManage POS</strong> untuk mencoba metode pembayaran lainnya.
+      Silakan buka kembali aplikasi <strong>UsahaKu POS</strong> untuk mencoba metode pembayaran lainnya.
     </p>
   </div>
 </body>

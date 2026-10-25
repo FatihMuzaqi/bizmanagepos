@@ -5,7 +5,17 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/ui_helpers.dart';
+import '../../products/providers/product_provider.dart';
 import '../providers/inventory_provider.dart';
+
+class _RecipeIngredientInput {
+  int? ingredientId;
+  final TextEditingController quantityController = TextEditingController();
+
+  void dispose() {
+    quantityController.dispose();
+  }
+}
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -28,6 +38,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
       inv.fetchStocks();
       inv.fetchMovements();
       inv.fetchRecipes();
+      context.read<ProductProvider>().fetchProducts();
     });
   }
 
@@ -35,6 +46,13 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  double _toDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
   }
 
   // --- Stock In / Out / Adjustment Dialog ---
@@ -412,6 +430,456 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     );
   }
 
+  // --- Add Recipe Dialog ---
+  void _showAddRecipeDialog() {
+    final productProvider = context.read<ProductProvider>();
+    final invProvider = context.read<InventoryProvider>();
+
+    if (productProvider.products.isEmpty) {
+      productProvider.fetchProducts();
+    }
+    if (invProvider.ingredients.isEmpty) {
+      invProvider.fetchIngredients();
+    }
+
+    final currentProducts = productProvider.products;
+    int? selectedProductId = currentProducts.isNotEmpty ? currentProducts.first['id'] as int? : null;
+    int? selectedVariantId;
+    final instructionsController = TextEditingController();
+    final List<_RecipeIngredientInput> itemRows = [
+      _RecipeIngredientInput(),
+    ];
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final products = context.watch<ProductProvider>().products;
+          final ingredients = context.watch<InventoryProvider>().ingredients;
+
+          // Find selected product to get variants
+          Map<String, dynamic>? selectedProductObj;
+          if (selectedProductId != null) {
+            try {
+              selectedProductObj = products.firstWhere((p) => p['id'] == selectedProductId);
+            } catch (_) {}
+          }
+          final variants = (selectedProductObj?['variants'] as List? ?? []).cast<Map<String, dynamic>>();
+
+          // Calculate estimated total HPP live (safely parsing String & num)
+          double totalHpp = 0.0;
+          for (final row in itemRows) {
+            if (row.ingredientId != null) {
+              final ing = ingredients.firstWhere(
+                (i) => i['id'] == row.ingredientId,
+                orElse: () => <String, dynamic>{},
+              );
+              final costPerUnit = _toDouble(ing['cost_per_unit']);
+              final qty = double.tryParse(row.quantityController.text) ?? 0.0;
+              totalHpp += (costPerUnit * qty);
+            }
+          }
+
+          final screenWidth = MediaQuery.of(dialogCtx).size.width;
+          final dialogWidth = screenWidth > 540 ? 500.0 : (screenWidth - 32);
+
+          return AlertDialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.menu_book_rounded, color: AppColors.primary),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Tambah Resep Menu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: dialogWidth,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Pilih Menu Produk *',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    if (products.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorContainer.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Belum ada menu produk terdaftar. Silakan tambahkan produk di menu Produk terlebih dahulu.',
+                          style: TextStyle(fontSize: 12, color: AppColors.error),
+                        ),
+                      )
+                    else
+                      DropdownButtonFormField<int>(
+                        value: selectedProductId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          hintText: 'Pilih Menu Produk',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        ),
+                        items: products.map((prod) {
+                          return DropdownMenuItem<int>(
+                            value: prod['id'] as int,
+                            child: Text(prod['name'] ?? 'Menu', overflow: TextOverflow.ellipsis),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          setDialogState(() {
+                            selectedProductId = val;
+                            selectedVariantId = null;
+                          });
+                        },
+                      ),
+
+                    if (variants.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Pilih Varian (Opsional)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<int?>(
+                        value: selectedVariantId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        ),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('Semua Varian (Resep Default Produk)', overflow: TextOverflow.ellipsis),
+                          ),
+                          ...variants.map((v) => DropdownMenuItem<int?>(
+                                value: v['id'] as int,
+                                child: Text('Varian: ${v['name']}', overflow: TextOverflow.ellipsis),
+                              )),
+                        ],
+                        onChanged: (val) {
+                          setDialogState(() {
+                            selectedVariantId = val;
+                          });
+                        },
+                      ),
+                    ],
+
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Instruksi Racikan (Opsional)',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: instructionsController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        hintText: 'Contoh: Larutkan biang teh dengan gula cair, tambahkan es batu hingga penuh.',
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+                    // Responsive Header Komposisi Bahan Baku
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Komposisi Bahan Baku *',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            setDialogState(() {
+                              itemRows.add(_RecipeIngredientInput());
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(Icons.add_circle_outline, size: 16),
+                          label: const Text('+ Tambah', style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+
+                    if (ingredients.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorContainer.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Belum ada data bahan baku. Silakan tambahkan bahan baku di Tab "Bahan Baku" terlebih dahulu.',
+                          style: TextStyle(fontSize: 12, color: AppColors.error),
+                        ),
+                      )
+                    else
+                      ...List.generate(itemRows.length, (idx) {
+                        final row = itemRows[idx];
+                        Map<String, dynamic>? selectedIngObj;
+                        if (row.ingredientId != null) {
+                          try {
+                            selectedIngObj = ingredients.firstWhere((i) => i['id'] == row.ingredientId);
+                          } catch (_) {}
+                        }
+                        final unitSymbol = selectedIngObj?['unit']?['symbol'] ?? '';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: DropdownButtonFormField<int>(
+                                      value: row.ingredientId,
+                                      isExpanded: true,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Pilih Bahan Baku *',
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      ),
+                                      items: ingredients.map((ing) {
+                                        final sym = ing['unit']?['symbol'] ?? '';
+                                        return DropdownMenuItem<int>(
+                                          value: ing['id'] as int,
+                                          child: Text(
+                                            '${ing['name']} ($sym)',
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        );
+                                      }).toList(),
+                                      onChanged: (val) {
+                                        setDialogState(() {
+                                          row.ingredientId = val;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  if (itemRows.length > 1) ...[
+                                    const SizedBox(width: 6),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 22),
+                                      tooltip: 'Hapus Baris',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () {
+                                        setDialogState(() {
+                                          itemRows[idx].dispose();
+                                          itemRows.removeAt(idx);
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: row.quantityController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  labelText: 'Jumlah Takaran per 1 Cup *',
+                                  hintText: 'Contoh: 25 atau 0.5',
+                                  isDense: true,
+                                  suffixText: unitSymbol.isNotEmpty ? unitSymbol : null,
+                                  suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                ),
+                                onChanged: (_) => setDialogState(() {}),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                    // Live HPP badge
+                    if (totalHpp > 0) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calculate_rounded, color: AppColors.primary, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Estimasi HPP Bahan Baku: ${CurrencyFormatter.format(totalHpp)} / cup',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () {
+                        for (final r in itemRows) {
+                          r.dispose();
+                        }
+                        instructionsController.dispose();
+                        Navigator.of(dialogCtx).pop();
+                      },
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        if (selectedProductId == null) {
+                          if (mounted) {
+                            UiHelpers.showSnackBar(context, 'Pilih menu produk terlebih dahulu', isError: true);
+                          }
+                          return;
+                        }
+
+                        final validItems = <Map<String, dynamic>>[];
+                        final usedIngredientIds = <int>{};
+
+                        for (final row in itemRows) {
+                          if (row.ingredientId == null) continue;
+                          final qty = double.tryParse(row.quantityController.text);
+                          if (qty == null || qty <= 0) {
+                            if (mounted) {
+                              UiHelpers.showSnackBar(context, 'Jumlah takaran bahan harus lebih dari 0', isError: true);
+                            }
+                            return;
+                          }
+                          if (usedIngredientIds.contains(row.ingredientId!)) {
+                            if (mounted) {
+                              UiHelpers.showSnackBar(context, 'Bahan baku tidak boleh ganda dalam satu resep', isError: true);
+                            }
+                            return;
+                          }
+                          usedIngredientIds.add(row.ingredientId!);
+                          validItems.add({
+                            'ingredient_id': row.ingredientId,
+                            'quantity': qty,
+                          });
+                        }
+
+                        if (validItems.isEmpty) {
+                          if (mounted) {
+                            UiHelpers.showSnackBar(context, 'Tambahkan minimal 1 bahan baku untuk resep menu ini', isError: true);
+                          }
+                          return;
+                        }
+
+                        setDialogState(() => isSubmitting = true);
+
+                        try {
+                          final payload = <String, dynamic>{
+                            'product_id': selectedProductId,
+                            if (selectedVariantId != null) 'product_variant_id': selectedVariantId,
+                            if (instructionsController.text.trim().isNotEmpty)
+                              'instructions': instructionsController.text.trim(),
+                            'items': validItems,
+                          };
+
+                          await context.read<InventoryProvider>().createRecipe(payload);
+
+                          for (final r in itemRows) {
+                            r.dispose();
+                          }
+                          instructionsController.dispose();
+
+                          if (dialogCtx.mounted) {
+                            Navigator.of(dialogCtx).pop();
+                          }
+                          if (mounted) {
+                            UiHelpers.showSnackBar(context, 'Resep menu berhasil disimpan!', isSuccess: true);
+                          }
+                        } catch (e) {
+                          setDialogState(() => isSubmitting = false);
+                          if (mounted) {
+                            UiHelpers.showSnackBar(context, 'Gagal menyimpan resep: $e', isError: true);
+                          }
+                        }
+                      },
+                child: isSubmitting
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Simpan Resep'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // --- Confirm Delete Recipe ---
+  void _confirmDeleteRecipe(int recipeId, String recipeTitle) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Resep Menu?'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus resep untuk "$recipeTitle"?\n\n'
+          'Setelah dihapus, penjualan produk ini di kasir tidak akan lagi memotong stok bahan baku secara otomatis.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              try {
+                await context.read<InventoryProvider>().deleteRecipe(recipeId);
+                if (mounted) {
+                  UiHelpers.showSnackBar(context, 'Resep berhasil dihapus', isSuccess: true);
+                }
+              } catch (e) {
+                if (mounted) {
+                  UiHelpers.showSnackBar(context, 'Gagal menghapus resep: $e', isError: true);
+                }
+              }
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final invProvider = context.watch<InventoryProvider>();
@@ -442,7 +910,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
           _buildIngredientsTab(invProvider, canAdjust),
 
           // Tab 3: Recipes
-          _buildRecipesTab(invProvider),
+          _buildRecipesTab(invProvider, canAdjust),
 
           // Tab 4: Stock Movements Audit
           _buildMovementsTab(invProvider),
@@ -606,7 +1074,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                   itemBuilder: (ctx, index) {
                     final ing = inv.ingredients[index];
                     final unit = ing['unit']?['symbol'] ?? '';
-                    final cost = ing['cost_per_unit'] ?? 0;
+                    final cost = _toDouble(ing['cost_per_unit']);
 
                     return Card(
                       child: ListTile(
@@ -637,51 +1105,233 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildRecipesTab(InventoryProvider inv) {
-    return inv.recipes.isEmpty
-        ? const Center(child: Text('Belum ada resep menu yang diatur'))
-        : ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: inv.recipes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (ctx, index) {
-              final recipe = inv.recipes[index];
-              final prodName = recipe['product']?['name'] ?? 'Produk';
-              final varName = recipe['variant']?['name'];
-              final items = (recipe['items'] as List? ?? []).cast<Map<String, dynamic>>();
-
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '$prodName${varName != null ? ' ($varName)' : ''}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const Divider(height: 16),
-                      ...items.map((it) {
-                        final ing = it['ingredient']?['name'] ?? 'Bahan';
-                        final qty = it['quantity'] ?? 0;
-                        final unit = it['ingredient']?['unit']?['symbol'] ?? '';
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('• $ing', style: const TextStyle(fontSize: 13)),
-                              Text('$qty $unit', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
+  Widget _buildRecipesTab(InventoryProvider inv, bool canManage) {
+    return Column(
+      children: [
+        if (canManage)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _showAddRecipeDialog,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Tambah Resep Menu'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-              );
-            },
-          );
+              ],
+            ),
+          ),
+        const Divider(height: 1),
+        Expanded(
+          child: inv.recipes.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.menu_book_outlined, size: 48, color: AppColors.textTertiary),
+                      SizedBox(height: 12),
+                      Text(
+                        'Belum ada resep menu yang diatur',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: inv.recipes.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (ctx, index) {
+                    final recipe = inv.recipes[index];
+                    final prodName = recipe['product']?['name'] ?? 'Produk';
+                    final varName = recipe['variant']?['name'];
+                    final instructions = recipe['instructions'] as String?;
+                    final items = (recipe['items'] as List? ?? []).cast<Map<String, dynamic>>();
+
+                    // Calculate total estimated HPP for this recipe
+                    double totalHpp = 0.0;
+                    for (final it in items) {
+                      final cost = _toDouble(it['ingredient']?['cost_per_unit']);
+                      final qty = _toDouble(it['quantity']);
+                      totalHpp += (cost * qty);
+                    }
+
+                    return Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: AppColors.cardBorder),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: AppColors.primaryContainer,
+                                  child: Icon(Icons.local_cafe_rounded, color: AppColors.primary, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        prodName,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: varName != null ? AppColors.secondary.withOpacity(0.15) : AppColors.cardBorder,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          varName != null ? 'Varian: $varName' : 'Resep Standar (Semua Varian)',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: varName != null ? AppColors.secondary : AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (canManage)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 22),
+                                    tooltip: 'Hapus Resep',
+                                    onPressed: () {
+                                      final title = '$prodName${varName != null ? " ($varName)" : ""}';
+                                      _confirmDeleteRecipe(recipe['id'] as int, title);
+                                    },
+                                  ),
+                              ],
+                            ),
+                            if (instructions != null && instructions.trim().isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.cardBorder.withOpacity(0.6)),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(Icons.info_outline, size: 15, color: AppColors.textSecondary),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        instructions,
+                                        style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.textSecondary),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Takaran Bahan Baku per Cup/Porsi:',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.cardBorder),
+                              ),
+                              child: Column(
+                                children: items.map((it) {
+                                  final ing = it['ingredient']?['name'] ?? 'Bahan';
+                                  final qty = it['quantity'] ?? 0;
+                                  final unit = it['ingredient']?['unit']?['symbol'] ?? '';
+                                  final cost = _toDouble(it['ingredient']?['cost_per_unit']);
+                                  final parsedQty = _toDouble(qty);
+                                  final subtotal = cost * parsedQty;
+
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.circle, size: 6, color: AppColors.primary),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            ing,
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                          ),
+                                        ),
+                                        Text(
+                                          '$qty $unit',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                        if (subtotal > 0) ...[
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '(${CurrencyFormatter.format(subtotal)})',
+                                            style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${items.length} jenis bahan baku',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
+                                ),
+                                if (totalHpp > 0)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.successContainer.withOpacity(0.5),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: AppColors.success.withOpacity(0.4)),
+                                    ),
+                                    child: Text(
+                                      'Estimasi HPP: ${CurrencyFormatter.format(totalHpp)} / cup',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.success),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
   }
 
   Widget _buildMovementsTab(InventoryProvider inv) {

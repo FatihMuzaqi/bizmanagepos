@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       const Text(
-                        'BizManage POS',
+                        'UsahaKu POS',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 24,

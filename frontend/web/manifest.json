@@ -1,11 +1,11 @@
 {
-    "name": "bizmanage_app",
-    "short_name": "bizmanage_app",
+    "name": "UsahaKu",
+    "short_name": "UsahaKu",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Aplikasi Kasir & Manajemen Usaha UMKM",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

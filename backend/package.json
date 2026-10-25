@@ -1,7 +1,7 @@
 {
   "name": "bizmanage-backend",
   "version": "1.0.0",
-  "description": "BizManage Multi-tenant SaaS Management & POS Backend",
+  "description": "UsahaKu Multi-tenant SaaS Management & POS Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

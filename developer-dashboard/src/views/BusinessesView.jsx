@@ -54,7 +54,7 @@ export default function BusinessesView() {
         <div>
           <h2 className="text-lg font-bold text-white tracking-tight">Monitoring Bisnis & Cabang UMKM</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Total {totalCount} bisnis terdaftar di seluruh jaringan BizManage
+            Total {totalCount} bisnis terdaftar di seluruh jaringan UsahaKu
           </p>
         </div>
 
