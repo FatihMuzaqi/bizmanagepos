@@ -181,7 +181,9 @@ class PosProvider extends ChangeNotifier {
         'discount': discount,
         'tax': tax,
         'payment': {
-          'payment_method': paymentMethod,
+          'method': paymentMethod == 'DEBIT' ? 'OTHER' : paymentMethod,
+          'payment_method': paymentMethod == 'DEBIT' ? 'OTHER' : paymentMethod,
+          'paid_amount': amountPaid,
           'amount_paid': amountPaid,
         },
         if (transactionNote != null && transactionNote.isNotEmpty)

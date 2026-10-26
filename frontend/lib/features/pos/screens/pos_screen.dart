@@ -78,11 +78,30 @@ class _PosScreenState extends State<PosScreen> {
     }
   }
 
+  IconData _getProductIcon(String name, String? category) {
+    final text = '${name.toLowerCase()} ${category?.toLowerCase() ?? ''}';
+    if (text.contains('teh') || text.contains('tea')) {
+      return Icons.emoji_food_beverage_rounded;
+    }
+    if (text.contains('kopi') || text.contains('coffee') || text.contains('americano') || text.contains('espresso')) {
+      return Icons.coffee_rounded;
+    }
+    if (text.contains('ayam') || text.contains('nasi') || text.contains('rice') || text.contains('makan')) {
+      return Icons.restaurant_rounded;
+    }
+    if (text.contains('kentang') || text.contains('fries') || text.contains('sosis') || text.contains('snack')) {
+      return Icons.fastfood_rounded;
+    }
+    return Icons.local_dining_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
     final productProvider = context.watch<ProductProvider>();
     final posProvider = context.watch<PosProvider>();
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 900;
+    final isTablet = screenWidth >= 600 && screenWidth < 900;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -206,8 +225,12 @@ class _PosScreenState extends State<PosScreen> {
                           : GridView.builder(
                               padding: const EdgeInsets.all(16),
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: isDesktop ? 4 : 2,
-                                childAspectRatio: 0.95,
+                                crossAxisCount: isDesktop ? 4 : (isTablet ? 3 : 2),
+                                childAspectRatio: isDesktop
+                                    ? 0.88
+                                    : isTablet
+                                        ? 0.78
+                                        : (screenWidth < 360 ? 0.69 : 0.72),
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
                               ),
@@ -221,33 +244,36 @@ class _PosScreenState extends State<PosScreen> {
                                 final category = prod['category']?['name'];
 
                                 return Card(
+                                  elevation: 0,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     side: const BorderSide(color: AppColors.cardBorder),
                                   ),
+                                  clipBehavior: Clip.antiAlias,
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(12),
                                     onTap: () => _onProductTap(prod),
                                     child: Padding(
-                                      padding: const EdgeInsets.all(12),
+                                      padding: const EdgeInsets.all(10),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Container(
-                                            height: 60,
+                                            height: 64,
+                                            width: double.infinity,
                                             decoration: BoxDecoration(
-                                              color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                                              color: AppColors.primaryContainer.withValues(alpha: 0.45),
                                               borderRadius: BorderRadius.circular(8),
                                             ),
-                                            child: const Center(
+                                            child: Center(
                                               child: Icon(
-                                                Icons.fastfood_rounded,
+                                                _getProductIcon(prod['name'] ?? '', category),
                                                 color: AppColors.primary,
-                                                size: 28,
+                                                size: 30,
                                               ),
                                             ),
                                           ),
-                                          const SizedBox(height: 10),
+                                          const SizedBox(height: 8),
                                           Text(
                                             prod['name'] ?? '',
                                             maxLines: 2,
@@ -255,12 +281,15 @@ class _PosScreenState extends State<PosScreen> {
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 13,
+                                              height: 1.25,
                                             ),
                                           ),
-                                          if (category != null) ...[
+                                          if (category != null && category.toString().trim().isNotEmpty) ...[
                                             const SizedBox(height: 2),
                                             Text(
                                               category,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                 fontSize: 11,
                                                 color: AppColors.textSecondary,
@@ -270,9 +299,11 @@ class _PosScreenState extends State<PosScreen> {
                                           const Spacer(),
                                           Text(
                                             CurrencyFormatter.format(numPrice),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 14,
+                                              fontSize: 13.5,
                                               color: AppColors.primary,
                                             ),
                                           ),

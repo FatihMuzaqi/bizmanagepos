@@ -12,6 +12,7 @@
     "seed": "npx sequelize-cli db:seed:all",
     "seed:prod": "npx sequelize-cli db:seed:all",
     "seed:dev": "node scripts/seedDemoAccount.js",
+    "seed:dummy": "node scripts/seedDummyData.js",
     "seed:undo": "npx sequelize-cli db:seed:undo:all",
     "backup": "node scripts/backupDatabase.js",
     "restore": "node scripts/restoreDatabase.js",

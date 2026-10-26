@@ -966,14 +966,28 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (ctx, index) {
                         final stock = inv.stocks[index];
-                        final ingName = stock['ingredient']?['name'] ?? 'Bahan Baku';
-                        final unit = stock['ingredient']?['unit']?['symbol'] ?? '';
-                        final qty = stock['quantity'] ?? 0;
-                        final min = stock['ingredient']?['minimum_stock'] ?? 0;
-                        final isLow = qty <= min && min > 0;
+                        final ingName = stock['name'] ?? stock['ingredient']?['name'] ?? 'Bahan Baku';
+                        final unit = stock['unit'] is Map
+                            ? (stock['unit']['symbol'] ?? '')
+                            : (stock['ingredient']?['unit']?['symbol'] ?? '');
+                        final doubleQty = _toDouble(stock['current_stock'] ?? stock['quantity'] ?? 0);
+                        final doubleMin = _toDouble(stock['minimum_stock'] ?? stock['ingredient']?['minimum_stock'] ?? 0);
+                        final isLow = (stock['status'] == 'LOW_STOCK') || (doubleQty <= doubleMin && doubleMin > 0);
+                        final displayQty = doubleQty % 1 == 0
+                            ? doubleQty.toInt().toString()
+                            : doubleQty.toStringAsFixed(2);
+                        final displayMin = doubleMin % 1 == 0
+                            ? doubleMin.toInt().toString()
+                            : doubleMin.toStringAsFixed(2);
 
                         return Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: const BorderSide(color: AppColors.cardBorder),
+                          ),
                           child: ListTile(
+                            onTap: canAdjust ? () => _showStockActionDialog('IN', stock) : null,
                             leading: CircleAvatar(
                               backgroundColor: isLow ? AppColors.errorContainer : AppColors.primaryContainer,
                               child: Icon(
@@ -983,13 +997,13 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                               ),
                             ),
                             title: Text(ingName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('Batas alert min: $min $unit'),
+                            subtitle: Text('Batas alert min: $displayMin $unit'),
                             trailing: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '$qty $unit',
+                                  '$displayQty $unit',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -1336,7 +1350,19 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
 
   Widget _buildMovementsTab(InventoryProvider inv) {
     return inv.movements.isEmpty
-        ? const Center(child: Text('Belum ada riwayat mutasi stok'))
+        ? const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history_rounded, size: 48, color: AppColors.textTertiary),
+                SizedBox(height: 12),
+                Text(
+                  'Belum ada riwayat mutasi stok',
+                  style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          )
         : ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: inv.movements.length,
@@ -1345,10 +1371,14 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               final mov = inv.movements[index];
               final type = mov['type'] ?? 'IN';
               final isPositive = type == 'IN' || type == 'PURCHASE';
-              final qty = mov['quantity'] ?? 0;
+              final doubleQty = _toDouble(mov['quantity']);
+              final displayQty = doubleQty % 1 == 0
+                  ? doubleQty.toInt().toString()
+                  : doubleQty.toStringAsFixed(2);
               final ingName = mov['ingredient']?['name'] ?? 'Bahan';
               final unit = mov['ingredient']?['unit']?['symbol'] ?? '';
               final date = mov['created_at'];
+              final notes = mov['notes'] ?? '';
 
               String typeLabel = type;
               if (type == 'IN' || type == 'PURCHASE') typeLabel = 'Masuk / Restock';
@@ -1357,19 +1387,48 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               if (type == 'ADJUSTMENT') typeLabel = 'Penyesuaian Opname';
 
               return Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: AppColors.cardBorder),
+                ),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isPositive ? AppColors.successContainer : AppColors.errorContainer,
+                    backgroundColor: isPositive
+                        ? AppColors.successContainer
+                        : AppColors.errorContainer,
                     child: Icon(
                       isPositive ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
                       color: isPositive ? AppColors.success : AppColors.error,
-                      size: 18,
+                      size: 20,
                     ),
                   ),
-                  title: Text('$ingName ($typeLabel)'),
-                  subtitle: Text(DateFormatter.formatDateTime(date)),
+                  title: Text(
+                    ingName,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 2),
+                      Text(
+                        typeLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isPositive ? AppColors.success : AppColors.error,
+                        ),
+                      ),
+                      Text(
+                        notes.toString().isNotEmpty
+                            ? '${DateFormatter.formatDateTime(date)} • $notes'
+                            : DateFormatter.formatDateTime(date),
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
                   trailing: Text(
-                    '${isPositive ? '+' : '-'}$qty $unit',
+                    '${isPositive ? '+' : '-'}$displayQty $unit',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,

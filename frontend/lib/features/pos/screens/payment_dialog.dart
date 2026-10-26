@@ -86,42 +86,45 @@ class _PaymentDialogState extends State<PaymentDialog> {
   Widget build(BuildContext context) {
     final posProvider = context.watch<PosProvider>();
 
-    final quickNominals = [
+    final quickNominals = <double>{
       widget.totalAmount,
       (widget.totalAmount / 10000).ceil() * 10000.0,
       (widget.totalAmount / 50000).ceil() * 50000.0,
       100000.0,
-    ].toSet().where((val) => val >= widget.totalAmount).toList();
+    }.where((val) => val >= widget.totalAmount).toList();
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Header
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Pilih Metode Pembayaran',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  const Expanded(
+                    child: Text(
+                      'Pilih Metode Pembayaran',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   IconButton(
+                    visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
-              const Divider(height: 20),
+              const Divider(height: 16),
 
               // Total Bill Box
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.primaryContainer,
                   borderRadius: BorderRadius.circular(12),
@@ -133,22 +136,27 @@ class _PaymentDialogState extends State<PaymentDialog> {
                       'TOTAL TAGIHAN',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 12,
                         color: AppColors.primaryDark,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    Text(
-                      CurrencyFormatter.format(widget.totalAmount),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        color: AppColors.primaryDark,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        CurrencyFormatter.format(widget.totalAmount),
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          color: AppColors.primaryDark,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
 
               // Payment Methods Grid
               const Text(
@@ -159,15 +167,15 @@ class _PaymentDialogState extends State<PaymentDialog> {
               Row(
                 children: [
                   _buildMethodTile('CASH', Icons.money_rounded, 'Tunai'),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   _buildMethodTile('QRIS', Icons.qr_code_2_rounded, 'QRIS'),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   _buildMethodTile('TRANSFER', Icons.account_balance_rounded, 'Transfer'),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   _buildMethodTile('DEBIT', Icons.credit_card_rounded, 'Debit'),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
 
               // Cash Nominal & Change Calculator
               if (_selectedMethod == 'CASH') ...[
@@ -182,12 +190,14 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   decoration: const InputDecoration(
                     prefixText: 'Rp ',
                     hintText: '0',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   children: quickNominals.map((nom) {
                     return ActionChip(
                       label: Text(CurrencyFormatter.format(nom)),
@@ -199,7 +209,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
@@ -234,15 +244,17 @@ class _PaymentDialogState extends State<PaymentDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Catatan Transaksi / Nama Pelanggan (Opsional)',
                   hintText: 'Contoh: Meja 4 / Bpk Joko / Tanpa Es',
+                  contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Pay Button
               ElevatedButton(
                 onPressed: posProvider.isLoading ? null : _processPayment,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 child: posProvider.isLoading
                     ? const SizedBox(
@@ -255,7 +267,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
                       )
                     : Text(
                         'Selesaikan Pembayaran (${CurrencyFormatter.format(widget.totalAmount)})',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                       ),
               ),
             ],
@@ -279,7 +292,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
         },
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected ? AppColors.primaryContainer : AppColors.surface,
             borderRadius: BorderRadius.circular(10),
@@ -289,17 +302,20 @@ class _PaymentDialogState extends State<PaymentDialog> {
             ),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
                 color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                size: 24,
+                size: 22,
               ),
               const SizedBox(height: 4),
               Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? AppColors.primary : AppColors.textPrimary,
                 ),

@@ -12,17 +12,27 @@ class ReceiptDialog extends StatelessWidget {
     required this.transaction,
   });
 
+  double _toDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final invoiceNo = transaction['invoice_number'] ?? '-';
-    final createdAt = transaction['created_at'];
+    final createdAt = transaction['created_at'] ?? transaction['createdAt'];
     final items = (transaction['items'] as List? ?? []).cast<Map<String, dynamic>>();
     final payment = transaction['payment'] as Map<String, dynamic>?;
-    final subtotal = transaction['subtotal'] ?? 0;
-    final discount = transaction['discount'] ?? 0;
-    final tax = transaction['tax'] ?? 0;
-    final total = transaction['total'] ?? 0;
+    final numSubtotal = _toDouble(transaction['subtotal']);
+    final numDiscount = _toDouble(transaction['discount']);
+    final numTax = _toDouble(transaction['tax']);
+    final numTotal = _toDouble(transaction['total']);
     final note = transaction['note'];
+    final payMethod = payment?['method'] ?? payment?['payment_method'] ?? 'CASH';
+    final paidAmount = _toDouble(payment?['paid_amount'] ?? payment?['amount_paid'] ?? numTotal);
+    final changeAmount = _toDouble(payment?['change_amount'] ?? payment?['change_given'] ?? 0);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -126,27 +136,27 @@ class ReceiptDialog extends StatelessWidget {
                         const Divider(height: 20),
 
                         // Financial Summaries
-                        _buildSummaryRow('Subtotal', CurrencyFormatter.format(subtotal)),
-                        if (discount > 0)
-                          _buildSummaryRow('Diskon', '- ${CurrencyFormatter.format(discount)}', isDiscount: true),
-                        if (tax > 0)
-                          _buildSummaryRow('Pajak', CurrencyFormatter.format(tax)),
+                        _buildSummaryRow('Subtotal', CurrencyFormatter.format(numSubtotal)),
+                        if (numDiscount > 0)
+                          _buildSummaryRow('Diskon', '- ${CurrencyFormatter.format(numDiscount)}', isDiscount: true),
+                        if (numTax > 0)
+                          _buildSummaryRow('Pajak', CurrencyFormatter.format(numTax)),
                         const SizedBox(height: 4),
                         _buildSummaryRow(
                           'TOTAL BAYAR',
-                          CurrencyFormatter.format(total),
+                          CurrencyFormatter.format(numTotal),
                           isBold: true,
                         ),
                         const Divider(height: 16),
 
                         // Payment Details
                         if (payment != null) ...[
-                          _buildSummaryRow('Metode Pembayaran', payment['payment_method'] ?? 'CASH'),
-                          _buildSummaryRow('Uang Diterima', CurrencyFormatter.format(payment['amount_paid'] ?? total)),
-                          if ((payment['change_given'] ?? 0) > 0)
+                          _buildSummaryRow('Metode Pembayaran', payMethod),
+                          _buildSummaryRow('Uang Diterima', CurrencyFormatter.format(paidAmount)),
+                          if (changeAmount > 0)
                             _buildSummaryRow(
                               'Kembalian',
-                              CurrencyFormatter.format(payment['change_given']),
+                              CurrencyFormatter.format(changeAmount),
                               isBold: true,
                             ),
                         ],

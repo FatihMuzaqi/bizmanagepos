@@ -238,8 +238,10 @@ const createTransaction = async (businessId, userId, isOwner, data) => {
     const total = parseFloat(Math.max(0, subtotal - discountAmount + taxAmount).toFixed(2));
 
     // 3. Payment Verification
-    const paymentMethod = payment.method;
-    const paidAmount = parseFloat(Number(payment.paid_amount).toFixed(2));
+    const rawMethod = payment.method || payment.payment_method;
+    const paymentMethod = rawMethod === 'DEBIT' ? 'OTHER' : (rawMethod || 'CASH');
+    const rawPaid = payment.paid_amount !== undefined ? payment.paid_amount : (payment.amount_paid !== undefined ? payment.amount_paid : total);
+    const paidAmount = parseFloat(Number(rawPaid).toFixed(2));
     let changeAmount = 0.00;
 
     if (paymentMethod === 'CASH') {

@@ -96,6 +96,12 @@ class InventoryProvider extends ChangeNotifier {
       );
       if (res is List) {
         _stocks = res.cast<Map<String, dynamic>>();
+      } else if (res is Map && res['items'] is List) {
+        _stocks = (res['items'] as List).cast<Map<String, dynamic>>();
+      } else if (res is Map && res['stocks'] is List) {
+        _stocks = (res['stocks'] as List).cast<Map<String, dynamic>>();
+      } else if (res is Map && res['data'] is List) {
+        _stocks = (res['data'] as List).cast<Map<String, dynamic>>();
       }
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -117,6 +123,12 @@ class InventoryProvider extends ChangeNotifier {
       );
       if (res is List) {
         _movements = res.cast<Map<String, dynamic>>();
+        notifyListeners();
+      } else if (res is Map && res['movements'] is List) {
+        _movements = (res['movements'] as List).cast<Map<String, dynamic>>();
+        notifyListeners();
+      } else if (res is Map && res['data'] is List) {
+        _movements = (res['data'] as List).cast<Map<String, dynamic>>();
         notifyListeners();
       }
     } catch (_) {}

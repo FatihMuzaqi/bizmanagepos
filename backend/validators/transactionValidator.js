@@ -37,14 +37,25 @@ const createTransactionSchema = Joi.object({
   }),
   note: Joi.string().max(1000).optional().allow('', null),
   payment: Joi.object({
-    method: Joi.string().valid('CASH', 'TRANSFER', 'QRIS', 'OTHER').required().messages({
-      'any.only': 'Payment method must be one of CASH, TRANSFER, QRIS, OTHER',
-      'any.required': 'Payment method is required'
-    }),
-    paid_amount: Joi.number().min(0).required().messages({
-      'number.min': 'Paid amount cannot be negative',
-      'any.required': 'Paid amount is required'
-    })
+    method: Joi.string().valid('CASH', 'TRANSFER', 'QRIS', 'DEBIT', 'OTHER').optional(),
+    payment_method: Joi.string().valid('CASH', 'TRANSFER', 'QRIS', 'DEBIT', 'OTHER').optional(),
+    paid_amount: Joi.number().min(0).optional(),
+    amount_paid: Joi.number().min(0).optional()
+  }).custom((val, helpers) => {
+    const rawMethod = val.method || val.payment_method;
+    if (!rawMethod) {
+      return helpers.message('Payment method is required');
+    }
+    const rawPaid = val.paid_amount !== undefined ? val.paid_amount : val.amount_paid;
+    if (rawPaid === undefined || rawPaid === null) {
+      return helpers.message('Paid amount is required');
+    }
+    // Normalize into standard keys expected by backend
+    val.method = rawMethod === 'DEBIT' ? 'OTHER' : rawMethod;
+    val.paid_amount = Number(rawPaid);
+    val.payment_method = val.method;
+    val.amount_paid = val.paid_amount;
+    return val;
   }).required().messages({
     'any.required': 'Payment information is required'
   })
