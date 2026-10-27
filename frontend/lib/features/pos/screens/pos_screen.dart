@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/ui_helpers.dart';
 import '../../products/providers/product_provider.dart';
 import '../providers/pos_provider.dart';
 import 'modifier_selection_dialog.dart';
@@ -340,9 +341,39 @@ class _PosScreenState extends State<PosScreen> {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
-                    builder: (_) => SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.75,
-                      child: _buildCartPanel(context, posProvider),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    builder: (sheetContext) => Consumer<PosProvider>(
+                      builder: (ctx, pos, _) {
+                        if (pos.cart.isEmpty) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (sheetContext.mounted && Navigator.of(sheetContext).canPop()) {
+                              Navigator.of(sheetContext).pop();
+                            }
+                          });
+                          return const SizedBox.shrink();
+                        }
+                        return SizedBox(
+                          height: MediaQuery.of(sheetContext).size.height * 0.75,
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 8),
+                              Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildCartPanel(context, pos),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   );
                 },
@@ -380,9 +411,28 @@ class _PosScreenState extends State<PosScreen> {
               ),
               if (posProvider.cart.isNotEmpty)
                 IconButton(
-                  icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.error, size: 20),
-                  tooltip: 'Kosongkan Keranjang',
-                  onPressed: posProvider.clearCart,
+                  icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.error, size: 22),
+                  tooltip: 'Kosongkan Pesanan Aktif',
+                  onPressed: () async {
+                    final confirmed = await UiHelpers.showConfirmDialog(
+                      context,
+                      title: 'Kosongkan Pesanan Aktif?',
+                      content: 'Apakah Anda yakin ingin menghapus semua item dari pesanan aktif?',
+                      confirmLabel: 'Ya, Hapus Semua',
+                      cancelLabel: 'Batal',
+                      isDestructive: true,
+                    );
+                    if (confirmed == true) {
+                      posProvider.clearCart();
+                      if (context.mounted) {
+                        UiHelpers.showSuccess(
+                          context,
+                          'Seluruh pesanan aktif berhasil dihapus',
+                          title: 'Pesanan Dikosongkan',
+                        );
+                      }
+                    }
+                  },
                 ),
             ],
           ),
@@ -463,21 +513,83 @@ class _PosScreenState extends State<PosScreen> {
                           ),
                           const SizedBox(height: 8),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                icon: const Icon(Icons.remove_circle_outline, size: 20, color: AppColors.error),
-                                onPressed: () => posProvider.updateQuantity(index, item.quantity - 1),
+                              // Tombol Hapus (Icon Sampah)
+                              InkWell(
+                                borderRadius: BorderRadius.circular(6),
+                                onTap: () {
+                                  final name = item.productName;
+                                  posProvider.removeFromCart(index);
+                                  UiHelpers.showSnackBar(
+                                    context,
+                                    '$name dihapus dari pesanan aktif',
+                                    isWarning: true,
+                                    duration: const Duration(seconds: 2),
+                                  );
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Hapus',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.error,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              Text(
-                                '${item.quantity}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                icon: const Icon(Icons.add_circle_outline, size: 20, color: AppColors.primary),
-                                onPressed: () => posProvider.updateQuantity(index, item.quantity + 1),
+                              // Counter Qty
+                              Row(
+                                children: [
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    icon: Icon(
+                                      item.quantity == 1
+                                          ? Icons.delete_outline_rounded
+                                          : Icons.remove_circle_outline,
+                                      size: 20,
+                                      color: AppColors.error,
+                                    ),
+                                    tooltip: item.quantity == 1 ? 'Hapus dari pesanan' : 'Kurangi jumlah',
+                                    onPressed: () {
+                                      if (item.quantity == 1) {
+                                        final name = item.productName;
+                                        posProvider.removeFromCart(index);
+                                        UiHelpers.showSnackBar(
+                                          context,
+                                          '$name dihapus dari pesanan aktif',
+                                          isWarning: true,
+                                          duration: const Duration(seconds: 2),
+                                        );
+                                      } else {
+                                        posProvider.updateQuantity(index, item.quantity - 1);
+                                      }
+                                    },
+                                  ),
+                                  Container(
+                                    constraints: const BoxConstraints(minWidth: 26),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      '${item.quantity}',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    icon: const Icon(Icons.add_circle_outline, size: 20, color: AppColors.primary),
+                                    tooltip: 'Tambah jumlah',
+                                    onPressed: () => posProvider.updateQuantity(index, item.quantity + 1),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
