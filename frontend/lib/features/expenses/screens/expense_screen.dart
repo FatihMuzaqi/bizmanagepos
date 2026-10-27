@@ -84,8 +84,20 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
               ElevatedButton(
                 onPressed: () async {
-                  if (selectedCatId == null || amountController.text.trim().isEmpty) return;
-                  final amount = double.tryParse(amountController.text) ?? 0.0;
+                  if (selectedCatId == null) {
+                    UiHelpers.showWarning(context, 'Pilih kategori pengeluaran terlebih dahulu', title: 'Kategori Belum Dipilih');
+                    return;
+                  }
+                  final amountText = amountController.text.trim();
+                  if (amountText.isEmpty) {
+                    UiHelpers.showWarning(context, 'Masukkan nominal pengeluaran', title: 'Nominal Kosong');
+                    return;
+                  }
+                  final amount = double.tryParse(amountText) ?? 0.0;
+                  if (amount <= 0) {
+                    UiHelpers.showWarning(context, 'Nominal pengeluaran harus lebih dari 0', title: 'Nominal Tidak Valid');
+                    return;
+                  }
                   Navigator.of(ctx).pop();
 
                   try {
@@ -95,12 +107,16 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                           expenseDate: selectedDate.toIso8601String().substring(0, 10),
                           description: descController.text.trim(),
                         );
-                    if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Pengeluaran berhasil dicatat', isSuccess: true);
+                    if (context.mounted) {
+                      UiHelpers.showSuccess(
+                        context,
+                        'Pengeluaran berhasil dicatat ke laporan keuangan',
+                        title: 'Pengeluaran Dicatat',
+                      );
                     }
                   } catch (e) {
-                    if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Gagal mencatat pengeluaran: $e', isError: true);
+                    if (context.mounted) {
+                      UiHelpers.showError(context, e, title: 'Gagal Mencatat Pengeluaran');
                     }
                   }
                 },
@@ -329,15 +345,15 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                           content: 'Apakah Anda yakin ingin membatalkan catatan pengeluaran ini?',
                                           isDestructive: true,
                                         );
-                                        if (confirmed == true && mounted) {
+                                        if (confirmed == true && context.mounted) {
                                           try {
                                             await expProvider.cancelExpense(id);
-                                            if (mounted) {
-                                              UiHelpers.showSnackBar(context, 'Catatan pengeluaran berhasil dibatalkan', isSuccess: true);
+                                            if (context.mounted) {
+                                              UiHelpers.showSuccess(context, 'Catatan pengeluaran berhasil dibatalkan', title: 'Pengeluaran Dibatalkan');
                                             }
                                           } catch (e) {
-                                            if (mounted) {
-                                              UiHelpers.showSnackBar(context, 'Gagal membatalkan: $e', isError: true);
+                                            if (context.mounted) {
+                                              UiHelpers.showError(context, e, title: 'Gagal Membatalkan');
                                             }
                                           }
                                         }

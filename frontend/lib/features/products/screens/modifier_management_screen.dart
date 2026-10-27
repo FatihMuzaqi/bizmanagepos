@@ -120,19 +120,23 @@ class _ModifierManagementScreenState extends State<ModifierManagementScreen> {
             TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
             ElevatedButton(
               onPressed: () async {
-                if (nameController.text.trim().isEmpty) return;
+                final name = nameController.text.trim();
+                if (name.isEmpty) {
+                  UiHelpers.showWarning(context, 'Nama kelompok varian wajib diisi', title: 'Form Belum Lengkap');
+                  return;
+                }
                 Navigator.of(ctx).pop();
                 try {
                   await context.read<ProductProvider>().createModifier({
-                    'name': nameController.text.trim(),
+                    'name': name,
                     if (options.isNotEmpty) 'options': options,
                   });
-                  if (mounted) {
-                    UiHelpers.showSnackBar(context, 'Kelompok varian berhasil dibuat', isSuccess: true);
+                  if (context.mounted) {
+                    UiHelpers.showSuccess(context, 'Kelompok varian "$name" berhasil dibuat', title: 'Varian Berhasil Dibuat');
                   }
                 } catch (e) {
-                  if (mounted) {
-                    UiHelpers.showSnackBar(context, 'Gagal membuat varian: $e', isError: true);
+                  if (context.mounted) {
+                    UiHelpers.showError(context, e, title: 'Gagal Membuat Varian');
                   }
                 }
               },
@@ -194,15 +198,15 @@ class _ModifierManagementScreenState extends State<ModifierManagementScreen> {
                                   content: 'Apakah Anda yakin ingin menghapus "${mod['name']}"?',
                                   isDestructive: true,
                                 );
-                                if (confirmed == true && mounted) {
+                                if (confirmed == true && context.mounted) {
                                   try {
                                     await productProvider.deleteModifier(id);
-                                    if (mounted) {
-                                      UiHelpers.showSnackBar(context, 'Varian berhasil dihapus', isSuccess: true);
+                                    if (context.mounted) {
+                                      UiHelpers.showSuccess(context, 'Kelompok varian berhasil dihapus', title: 'Varian Dihapus');
                                     }
                                   } catch (e) {
-                                    if (mounted) {
-                                      UiHelpers.showSnackBar(context, 'Gagal menghapus: $e', isError: true);
+                                    if (context.mounted) {
+                                      UiHelpers.showError(context, e, title: 'Gagal Menghapus Varian');
                                     }
                                   }
                                 }

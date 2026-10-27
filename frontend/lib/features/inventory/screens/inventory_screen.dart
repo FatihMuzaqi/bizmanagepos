@@ -133,12 +133,33 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
               ElevatedButton(
                 onPressed: () async {
-                  if (selectedIngredientId == null || qtyController.text.trim().isEmpty) return;
-                  final qty = double.tryParse(qtyController.text) ?? 0.0;
+                  if (selectedIngredientId == null) {
+                    UiHelpers.showWarning(context, 'Pilih bahan baku terlebih dahulu', title: 'Bahan Belum Dipilih');
+                    return;
+                  }
+                  final qtyText = qtyController.text.trim();
+                  if (qtyText.isEmpty) {
+                    UiHelpers.showWarning(context, 'Masukkan jumlah stok', title: 'Jumlah Kosong');
+                    return;
+                  }
+                  final qty = double.tryParse(qtyText) ?? 0.0;
+                  if (qty <= 0) {
+                    UiHelpers.showWarning(context, 'Jumlah stok harus lebih dari 0', title: 'Jumlah Tidak Valid');
+                    return;
+                  }
                   final cost = double.tryParse(costController.text);
                   Navigator.of(ctx).pop();
 
                   final inv = context.read<InventoryProvider>();
+                  final ing = inv.ingredients.firstWhere(
+                    (item) => item['id'] == selectedIngredientId,
+                    orElse: () => <String, dynamic>{},
+                  );
+                  final ingName = ing['name']?.toString() ?? 'Bahan';
+                  final unitSymbol = ing['unit'] != null && ing['unit']['symbol'] != null
+                      ? ' ${ing['unit']['symbol']}'
+                      : '';
+
                   try {
                     if (actionType == 'IN') {
                       await inv.stockIn(
@@ -147,25 +168,49 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                         costPerUnit: cost,
                         notes: noteController.text.trim(),
                       );
+                      if (context.mounted) {
+                        UiHelpers.showSuccess(
+                          context,
+                          'Berhasil menambahkan stok masuk: +$qty$unitSymbol untuk $ingName',
+                          title: 'Stok Masuk Berhasil',
+                        );
+                      }
                     } else if (actionType == 'OUT') {
                       await inv.stockOut(
                         ingredientId: selectedIngredientId!,
                         quantity: qty,
                         notes: noteController.text.trim(),
                       );
+                      if (context.mounted) {
+                        UiHelpers.showSuccess(
+                          context,
+                          'Berhasil mencatat stok keluar: -$qty$unitSymbol untuk $ingName',
+                          title: 'Stok Keluar Berhasil',
+                        );
+                      }
                     } else {
                       await inv.stockAdjustment(
                         ingredientId: selectedIngredientId!,
                         actualQuantity: qty,
                         notes: noteController.text.trim(),
                       );
-                    }
-                    if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Data stok berhasil diperbarui', isSuccess: true);
+                      if (context.mounted) {
+                        UiHelpers.showSuccess(
+                          context,
+                          'Penyesuaian stok opname $ingName berhasil disimpan ($qty$unitSymbol)',
+                          title: 'Stok Opname Berhasil',
+                        );
+                      }
                     }
                   } catch (e) {
-                    if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Gagal memperbarui stok: $e', isError: true);
+                    if (context.mounted) {
+                      UiHelpers.showError(
+                        context,
+                        e,
+                        title: actionType == 'IN'
+                            ? 'Gagal Menambah Stok Masuk'
+                            : (actionType == 'OUT' ? 'Gagal Mencatat Stok Keluar' : 'Gagal Penyesuaian Opname'),
+                      );
                     }
                   }
                 },
@@ -267,7 +312,10 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                 onPressed: () async {
                   final name = unitNameController.text.trim();
                   final symbol = unitSymbolController.text.trim();
-                  if (name.isEmpty || symbol.isEmpty) return;
+                  if (name.isEmpty || symbol.isEmpty) {
+                    UiHelpers.showWarning(context, 'Nama dan simbol satuan wajib diisi', title: 'Form Belum Lengkap');
+                    return;
+                  }
 
                   try {
                     final created = await inv.createUnit(name, symbol);
@@ -294,11 +342,15 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     }
 
                     if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Satuan "$name ($symbol)" berhasil ditambahkan', isSuccess: true);
+                      UiHelpers.showSuccess(
+                        context,
+                        'Satuan "$name ($symbol)" berhasil ditambahkan',
+                        title: 'Satuan Ditambahkan',
+                      );
                     }
                   } catch (e) {
                     if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Gagal menambah satuan: $e', isError: true);
+                      UiHelpers.showError(context, e, title: 'Gagal Menambah Satuan');
                     }
                   }
                 },
@@ -398,26 +450,35 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
               ElevatedButton(
                 onPressed: () async {
-                  if (nameController.text.trim().isEmpty || selectedUnitId == null) {
+                  final name = nameController.text.trim();
+                  if (name.isEmpty || selectedUnitId == null) {
                     if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Nama bahan dan Satuan ukuran wajib diisi', isError: true);
+                      UiHelpers.showWarning(
+                        context,
+                        'Nama bahan baku dan satuan ukuran wajib diisi',
+                        title: 'Form Belum Lengkap',
+                      );
                     }
                     return;
                   }
                   Navigator.of(ctx).pop();
                   try {
                     await context.read<InventoryProvider>().createIngredient({
-                      'name': nameController.text.trim(),
+                      'name': name,
                       'unit_id': selectedUnitId,
                       'cost_per_unit': double.tryParse(costController.text) ?? 0.0,
                       'minimum_stock': double.tryParse(minStockController.text) ?? 0.0,
                     });
-                    if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Bahan baku berhasil dibuat', isSuccess: true);
+                    if (context.mounted) {
+                      UiHelpers.showSuccess(
+                        context,
+                        'Bahan baku "$name" berhasil ditambahkan ke inventori',
+                        title: 'Bahan Baku Ditambahkan',
+                      );
                     }
                   } catch (e) {
-                    if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Gagal membuat bahan: $e', isError: true);
+                    if (context.mounted) {
+                      UiHelpers.showError(context, e, title: 'Gagal Menambah Bahan Baku');
                     }
                   }
                 },
@@ -761,7 +822,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                     : () async {
                         if (selectedProductId == null) {
                           if (mounted) {
-                            UiHelpers.showSnackBar(context, 'Pilih menu produk terlebih dahulu', isError: true);
+                            UiHelpers.showWarning(context, 'Pilih menu produk terlebih dahulu', title: 'Menu Belum Dipilih');
                           }
                           return;
                         }
@@ -774,13 +835,13 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                           final qty = double.tryParse(row.quantityController.text);
                           if (qty == null || qty <= 0) {
                             if (mounted) {
-                              UiHelpers.showSnackBar(context, 'Jumlah takaran bahan harus lebih dari 0', isError: true);
+                              UiHelpers.showWarning(context, 'Jumlah takaran bahan harus lebih dari 0', title: 'Takaran Tidak Valid');
                             }
                             return;
                           }
                           if (usedIngredientIds.contains(row.ingredientId!)) {
                             if (mounted) {
-                              UiHelpers.showSnackBar(context, 'Bahan baku tidak boleh ganda dalam satu resep', isError: true);
+                              UiHelpers.showWarning(context, 'Bahan baku tidak boleh ganda dalam satu resep', title: 'Bahan Baku Duplikat');
                             }
                             return;
                           }
@@ -793,7 +854,7 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
 
                         if (validItems.isEmpty) {
                           if (mounted) {
-                            UiHelpers.showSnackBar(context, 'Tambahkan minimal 1 bahan baku untuk resep menu ini', isError: true);
+                            UiHelpers.showWarning(context, 'Tambahkan minimal 1 bahan baku untuk resep menu ini', title: 'Bahan Belum Dipilih');
                           }
                           return;
                         }
@@ -820,12 +881,16 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
                             Navigator.of(dialogCtx).pop();
                           }
                           if (mounted) {
-                            UiHelpers.showSnackBar(context, 'Resep menu berhasil disimpan!', isSuccess: true);
+                            UiHelpers.showSuccess(
+                              context,
+                              'Resep menu berhasil disimpan dan estimasi HPP otomatis dihitung!',
+                              title: 'Resep Menu Berhasil Disimpan',
+                            );
                           }
                         } catch (e) {
                           setDialogState(() => isSubmitting = false);
                           if (mounted) {
-                            UiHelpers.showSnackBar(context, 'Gagal menyimpan resep: $e', isError: true);
+                            UiHelpers.showError(context, e, title: 'Gagal Menyimpan Resep');
                           }
                         }
                       },
@@ -865,11 +930,11 @@ class _InventoryScreenState extends State<InventoryScreen> with SingleTickerProv
               try {
                 await context.read<InventoryProvider>().deleteRecipe(recipeId);
                 if (mounted) {
-                  UiHelpers.showSnackBar(context, 'Resep berhasil dihapus', isSuccess: true);
+                  UiHelpers.showSuccess(context, 'Resep menu berhasil dihapus', title: 'Resep Dihapus');
                 }
               } catch (e) {
                 if (mounted) {
-                  UiHelpers.showSnackBar(context, 'Gagal menghapus resep: $e', isError: true);
+                  UiHelpers.showError(context, e, title: 'Gagal Menghapus Resep');
                 }
               }
             },

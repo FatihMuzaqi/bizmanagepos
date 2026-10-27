@@ -107,35 +107,54 @@ class _ProductListScreenState extends State<ProductListScreen> {
               TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
               ElevatedButton(
                 onPressed: () async {
-                  if (nameController.text.trim().isEmpty) return;
+                  final name = nameController.text.trim();
+                  if (name.isEmpty) {
+                    UiHelpers.showWarning(context, 'Nama menu produk wajib diisi', title: 'Form Belum Lengkap');
+                    return;
+                  }
                   final price = double.tryParse(priceController.text) ?? 0.0;
+                  if (price <= 0) {
+                    UiHelpers.showWarning(context, 'Harga jual produk harus lebih dari 0', title: 'Harga Tidak Valid');
+                    return;
+                  }
                   Navigator.of(ctx).pop();
 
                   try {
                     if (existing == null) {
                       await context.read<ProductProvider>().createProduct({
-                        'name': nameController.text.trim(),
+                        'name': name,
                         if (skuController.text.trim().isNotEmpty) 'sku': skuController.text.trim(),
                         if (selectedCatId != null) 'category_id': selectedCatId,
                         'selling_price': price,
                       });
+                      if (context.mounted) {
+                        UiHelpers.showSuccess(
+                          context,
+                          'Menu produk "$name" berhasil ditambahkan',
+                          title: 'Produk Berhasil Ditambahkan',
+                        );
+                      }
                     } else {
                       await context.read<ProductProvider>().updateProduct(
                         existing['id'] as int,
                         {
-                          'name': nameController.text.trim(),
+                          'name': name,
                           if (skuController.text.trim().isNotEmpty) 'sku': skuController.text.trim(),
                           'category_id': selectedCatId,
                           'selling_price': price,
                         },
                       );
-                    }
-                    if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Produk berhasil disimpan', isSuccess: true);
+                      if (context.mounted) {
+                        UiHelpers.showSuccess(
+                          context,
+                          'Menu produk "$name" berhasil diperbarui',
+                          title: 'Produk Berhasil Diperbarui',
+                        );
+                      }
                     }
                   } catch (e) {
-                    if (mounted) {
-                      UiHelpers.showSnackBar(context, 'Gagal menyimpan produk: $e', isError: true);
+                    if (context.mounted) {
+                      UiHelpers.showError(context, e, title: 'Gagal Menyimpan Produk');
                     }
                   }
                 },
@@ -314,12 +333,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           if (confirmed == true && mounted) {
                                             try {
                                               await productProvider.deleteProduct(id);
-                                              if (mounted) {
-                                                UiHelpers.showSnackBar(context, 'Produk berhasil dihapus', isSuccess: true);
+                                              if (context.mounted) {
+                                                UiHelpers.showSuccess(context, 'Menu "$name" berhasil dihapus', title: 'Produk Dihapus');
                                               }
                                             } catch (e) {
-                                              if (mounted) {
-                                                UiHelpers.showSnackBar(context, 'Gagal menghapus: $e', isError: true);
+                                              if (context.mounted) {
+                                                UiHelpers.showError(context, e, title: 'Gagal Menghapus Produk');
                                               }
                                             }
                                           }

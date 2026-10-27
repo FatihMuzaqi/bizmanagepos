@@ -52,27 +52,34 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.trim().isEmpty) return;
+              final name = nameController.text.trim();
+              if (name.isEmpty) {
+                UiHelpers.showWarning(context, 'Nama kategori wajib diisi', title: 'Form Belum Lengkap');
+                return;
+              }
               Navigator.of(ctx).pop();
               try {
                 if (existing == null) {
                   await context.read<ProductProvider>().createCategory(
-                        nameController.text.trim(),
+                        name,
                         descController.text.trim(),
                       );
+                  if (mounted) {
+                    UiHelpers.showSuccess(context, 'Kategori "$name" berhasil ditambahkan', title: 'Kategori Ditambahkan');
+                  }
                 } else {
                   await context.read<ProductProvider>().updateCategory(
                         existing['id'] as int,
-                        nameController.text.trim(),
+                        name,
                         descController.text.trim(),
                       );
-                }
-                if (mounted) {
-                  UiHelpers.showSnackBar(context, 'Kategori berhasil disimpan', isSuccess: true);
+                  if (mounted) {
+                    UiHelpers.showSuccess(context, 'Kategori "$name" berhasil diperbarui', title: 'Kategori Diperbarui');
+                  }
                 }
               } catch (e) {
                 if (mounted) {
-                  UiHelpers.showSnackBar(context, 'Gagal menyimpan kategori: $e', isError: true);
+                  UiHelpers.showError(context, e, title: 'Gagal Menyimpan Kategori');
                 }
               }
             },
@@ -135,15 +142,15 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                               content: 'Apakah Anda yakin ingin menghapus kategori "${cat['name']}"?',
                               isDestructive: true,
                             );
-                            if (confirmed == true && mounted) {
+                            if (confirmed == true && context.mounted) {
                               try {
                                 await productProvider.deleteCategory(id);
-                                if (mounted) {
-                                  UiHelpers.showSnackBar(context, 'Kategori berhasil dihapus', isSuccess: true);
+                                if (context.mounted) {
+                                  UiHelpers.showSuccess(context, 'Kategori "${cat['name']}" berhasil dihapus', title: 'Kategori Dihapus');
                                 }
                               } catch (e) {
-                                if (mounted) {
-                                  UiHelpers.showSnackBar(context, 'Gagal menghapus: $e', isError: true);
+                                if (context.mounted) {
+                                  UiHelpers.showError(context, e, title: 'Gagal Menghapus Kategori');
                                 }
                               }
                             }

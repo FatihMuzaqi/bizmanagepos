@@ -47,10 +47,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
   Future<void> _processPayment() async {
     if (_selectedMethod == 'CASH' && _amountPaid < widget.totalAmount) {
-      UiHelpers.showSnackBar(
+      UiHelpers.showWarning(
         context,
         'Jumlah uang tunai tidak boleh kurang dari total tagihan',
-        isError: true,
+        title: 'Nominal Pembayaran Kurang',
       );
       return;
     }
@@ -77,7 +77,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
       );
     } catch (e) {
       if (mounted) {
-        UiHelpers.showSnackBar(context, 'Pembayaran gagal: $e', isError: true);
+        UiHelpers.showError(context, e, title: 'Pembayaran Gagal');
       }
     }
   }
