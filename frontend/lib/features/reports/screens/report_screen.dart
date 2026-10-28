@@ -389,103 +389,107 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryContainer,
-                    borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.file_download_rounded, color: AppColors.primary, size: 24),
                   ),
-                  child: const Icon(Icons.file_download_rounded, color: AppColors.primary, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Export Laporan Penjualan & Keuangan',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Periode aktif: $presetName',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                    ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Export Laporan Penjualan & Keuangan',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Periode aktif: $presetName',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-            // Option 1: PDF Document
-            _buildExportOptionTile(
-              icon: Icons.picture_as_pdf_rounded,
-              iconColor: const Color(0xFFEF4444),
-              iconBgColor: const Color(0xFFFEE2E2),
-              title: 'Export Dokumen PDF (.pdf)',
-              subtitle: 'Dokumen formal siap cetak, simpan ke file, atau bagikan via WhatsApp / Email',
-              badgeText: 'Siap Cetak',
-              badgeColor: const Color(0xFFEF4444),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                ReportExportService.exportPdf(context: context, rep: repProvider);
-              },
-            ),
-            const SizedBox(height: 10),
+              // Option 1: PDF Document
+              _buildExportOptionTile(
+                icon: Icons.picture_as_pdf_rounded,
+                iconColor: const Color(0xFFEF4444),
+                iconBgColor: const Color(0xFFFEE2E2),
+                title: 'Export Dokumen PDF (.pdf)',
+                subtitle: 'Dokumen formal siap cetak, simpan ke file, atau bagikan via WhatsApp / Email',
+                badgeText: 'Siap Cetak',
+                badgeColor: const Color(0xFFEF4444),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  ReportExportService.exportPdf(context: context, rep: repProvider);
+                },
+              ),
+              const SizedBox(height: 10),
 
-            // Option 2: Excel Spreadsheet (.xls)
-            _buildExportOptionTile(
-              icon: Icons.table_chart_rounded,
-              iconColor: const Color(0xFF10B981),
-              iconBgColor: const Color(0xFFECFDF5),
-              title: 'Export Spreadsheet Excel (.xls)',
-              subtitle: 'Buku kerja multi-sheet: Ringkasan, Menu Produk, Cabang, dan Pengeluaran',
-              badgeText: 'Multi-Sheet',
-              badgeColor: const Color(0xFF10B981),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                ReportExportService.exportExcel(context: context, rep: repProvider);
-              },
-            ),
-            const SizedBox(height: 10),
+              // Option 2: Excel Spreadsheet (.xls)
+              _buildExportOptionTile(
+                icon: Icons.table_chart_rounded,
+                iconColor: const Color(0xFF10B981),
+                iconBgColor: const Color(0xFFECFDF5),
+                title: 'Export Spreadsheet Excel (.xls)',
+                subtitle: 'Buku kerja multi-sheet: Ringkasan, Menu Produk, Cabang, dan Pengeluaran',
+                badgeText: 'Multi-Sheet',
+                badgeColor: const Color(0xFF10B981),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  ReportExportService.exportExcel(context: context, rep: repProvider);
+                },
+              ),
+              const SizedBox(height: 10),
 
-            // Option 3: Universal CSV (.csv)
-            _buildExportOptionTile(
-              icon: Icons.description_outlined,
-              iconColor: const Color(0xFF0066FF),
-              iconBgColor: const Color(0xFFEFF6FF),
-              title: 'Export Format CSV (.csv)',
-              subtitle: 'Data tabel universal UTF-8 untuk software akuntansi & Google Sheets',
-              badgeText: 'Data Mentah',
-              badgeColor: const Color(0xFF0066FF),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                ReportExportService.exportCsv(context: context, rep: repProvider);
-              },
-            ),
-          ],
+              // Option 3: Universal CSV (.csv)
+              _buildExportOptionTile(
+                icon: Icons.description_outlined,
+                iconColor: const Color(0xFF0066FF),
+                iconBgColor: const Color(0xFFEFF6FF),
+                title: 'Export Format CSV (.csv)',
+                subtitle: 'Data tabel universal UTF-8 untuk software akuntansi & Google Sheets',
+                badgeText: 'Data Mentah',
+                badgeColor: const Color(0xFF0066FF),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  ReportExportService.exportCsv(context: context, rep: repProvider);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
