@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -15,6 +18,19 @@ import '../../../core/utils/ui_helpers.dart';
 import '../providers/report_provider.dart';
 
 class ReportExportService {
+  /// Safely format date with Indonesian locale fallback
+  static String _formatIndonesianDate(DateTime date, [String pattern = 'dd MMMM yyyy, HH:mm']) {
+    try {
+      return DateFormat(pattern, 'id_ID').format(date);
+    } catch (_) {
+      try {
+        return DateFormat(pattern).format(date);
+      } catch (_) {
+        return '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      }
+    }
+  }
+
   /// Map preset key to Indonesian human-readable label
   static String getPresetLabel(String preset) {
     switch (preset) {
@@ -43,12 +59,16 @@ class ReportExportService {
     String? customTitle,
   }) async {
     try {
+      try {
+        await initializeDateFormatting('id_ID', null);
+      } catch (_) {}
+
       final doc = pw.Document();
 
       final businessName = StorageService.getActiveBusinessName() ?? 'UsahaKu';
       final outletName = StorageService.getActiveOutletName() ?? 'Semua Cabang';
       final presetLabel = getPresetLabel(rep.selectedPreset);
-      final currentDateStr = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(DateTime.now());
+      final currentDateStr = _formatIndonesianDate(DateTime.now());
 
       final sales = rep.salesReport;
       final dashboard = rep.dashboardData;
@@ -647,17 +667,31 @@ class ReportExportService {
 
       xmlBuffer.writeln('</Workbook>');
 
-      // Save file to user's device
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileName = 'Laporan_Keuangan_${rep.selectedPreset}_$timestamp.xls';
+
+      // Cross-platform save: Web (browser download) vs Native (File storage)
+      if (kIsWeb) {
+        final bytes = Uint8List.fromList(utf8.encode(xmlBuffer.toString()));
+        await Printing.sharePdf(bytes: bytes, filename: fileName);
+        if (context.mounted) {
+          UiHelpers.showSuccess(
+            context,
+            'File Excel ($fileName) berhasil diunduh.',
+            title: 'Export Excel Berhasil',
+          );
+        }
+        return;
+      }
+
+      // Save file to user's device on Native Mobile/Desktop
       Directory? targetDir;
       try {
         targetDir = await getDownloadsDirectory();
       } catch (_) {}
       targetDir ??= await getApplicationDocumentsDirectory();
 
-      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final fileName = 'Laporan_Keuangan_${rep.selectedPreset}_$timestamp.xls';
       final file = File('${targetDir.path}/$fileName');
-
       await file.writeAsString(xmlBuffer.toString(), encoding: utf8);
 
       if (context.mounted) {
@@ -812,16 +846,30 @@ class ReportExportService {
         }
       }
 
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileName = 'Laporan_Keuangan_${rep.selectedPreset}_$timestamp.csv';
+
+      // Cross-platform save: Web (browser download) vs Native (File storage)
+      if (kIsWeb) {
+        final bytes = Uint8List.fromList(utf8.encode(csvBuffer.toString()));
+        await Printing.sharePdf(bytes: bytes, filename: fileName);
+        if (context.mounted) {
+          UiHelpers.showSuccess(
+            context,
+            'File CSV ($fileName) berhasil diunduh.',
+            title: 'Export CSV Berhasil',
+          );
+        }
+        return;
+      }
+
       Directory? targetDir;
       try {
         targetDir = await getDownloadsDirectory();
       } catch (_) {}
       targetDir ??= await getApplicationDocumentsDirectory();
 
-      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final fileName = 'Laporan_Keuangan_${rep.selectedPreset}_$timestamp.csv';
       final file = File('${targetDir.path}/$fileName');
-
       await file.writeAsString(csvBuffer.toString(), encoding: utf8);
 
       if (context.mounted) {

@@ -18,9 +18,18 @@ import 'features/products/providers/product_provider.dart';
 import 'features/reports/providers/report_provider.dart';
 import 'features/subscription/providers/subscription_provider.dart';
 
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.init();
+  try {
+    await initializeDateFormatting('id_ID', null);
+    Intl.defaultLocale = 'id_ID';
+  } catch (e) {
+    debugPrint('⚠️ [UsahaKu] Failed to initialize id_ID date formatting: $e');
+  }
 
   debugPrint('🚀 [UsahaKu] Base API URL: ${AppConfig.baseUrl}');
 
