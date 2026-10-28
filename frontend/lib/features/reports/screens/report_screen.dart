@@ -139,6 +139,14 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showExportModal(context, repProvider),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.file_download_rounded, size: 22),
+        label: const Text('Export Laporan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+      ),
     );
   }
 
