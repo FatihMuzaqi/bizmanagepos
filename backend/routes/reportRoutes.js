@@ -18,4 +18,8 @@ router.get('/outlets', reportController.getOutletReport);
 router.get('/expenses', reportController.getExpenseReport);
 router.get('/stock', reportController.getStockReport);
 
+// Export Endpoints (Excel & CSV)
+router.get('/export/excel', reportController.exportExcelReport);
+router.get('/export/csv', reportController.exportCsvReport);
+
 module.exports = router;

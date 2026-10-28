@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../providers/report_provider.dart';
+import '../services/report_export_service.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -54,6 +55,14 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Laporan Penjualan & Keuangan'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined),
+            tooltip: 'Export Laporan',
+            onPressed: () => _showExportModal(context, repProvider),
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -73,27 +82,42 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: _presets.entries.map((entry) {
-                  final isSelected = repProvider.selectedPreset == entry.key;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(entry.value),
-                      selected: isSelected,
-                      selectedColor: AppColors.primaryContainer,
-                      labelStyle: TextStyle(
-                        color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                children: [
+                  ..._presets.entries.map((entry) {
+                    final isSelected = repProvider.selectedPreset == entry.key;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(entry.value),
+                        selected: isSelected,
+                        selectedColor: AppColors.primaryContainer,
+                        labelStyle: TextStyle(
+                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        onSelected: (val) {
+                          if (val) {
+                            repProvider.setFilterPreset(entry.key);
+                            _loadReports();
+                          }
+                        },
                       ),
-                      onSelected: (val) {
-                        if (val) {
-                          repProvider.setFilterPreset(entry.key);
-                          _loadReports();
-                        }
-                      },
+                    );
+                  }),
+                  const SizedBox(width: 6),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 0,
                     ),
-                  );
-                }).toList(),
+                    icon: const Icon(Icons.file_download_rounded, size: 17),
+                    label: const Text('Export Laporan', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                    onPressed: () => _showExportModal(context, repProvider),
+                  ),
+                ],
               ),
             ),
           ),
@@ -348,6 +372,186 @@ class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderSt
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showExportModal(BuildContext context, ReportProvider repProvider) {
+    final presetName = ReportExportService.getPresetLabel(repProvider.selectedPreset);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.file_download_rounded, color: AppColors.primary, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Export Laporan Penjualan & Keuangan',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Periode aktif: $presetName',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Option 1: PDF Document
+            _buildExportOptionTile(
+              icon: Icons.picture_as_pdf_rounded,
+              iconColor: const Color(0xFFEF4444),
+              iconBgColor: const Color(0xFFFEE2E2),
+              title: 'Export Dokumen PDF (.pdf)',
+              subtitle: 'Dokumen formal siap cetak, simpan ke file, atau bagikan via WhatsApp / Email',
+              badgeText: 'Siap Cetak',
+              badgeColor: const Color(0xFFEF4444),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ReportExportService.exportPdf(context: context, rep: repProvider);
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // Option 2: Excel Spreadsheet (.xls)
+            _buildExportOptionTile(
+              icon: Icons.table_chart_rounded,
+              iconColor: const Color(0xFF10B981),
+              iconBgColor: const Color(0xFFECFDF5),
+              title: 'Export Spreadsheet Excel (.xls)',
+              subtitle: 'Buku kerja multi-sheet: Ringkasan, Menu Produk, Cabang, dan Pengeluaran',
+              badgeText: 'Multi-Sheet',
+              badgeColor: const Color(0xFF10B981),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ReportExportService.exportExcel(context: context, rep: repProvider);
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // Option 3: Universal CSV (.csv)
+            _buildExportOptionTile(
+              icon: Icons.description_outlined,
+              iconColor: const Color(0xFF0066FF),
+              iconBgColor: const Color(0xFFEFF6FF),
+              title: 'Export Format CSV (.csv)',
+              subtitle: 'Data tabel universal UTF-8 untuk software akuntansi & Google Sheets',
+              badgeText: 'Data Mentah',
+              badgeColor: const Color(0xFF0066FF),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ReportExportService.exportCsv(context: context, rep: repProvider);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExportOptionTile({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String title,
+    required String subtitle,
+    required String badgeText,
+    required Color badgeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          badgeText,
+                          style: TextStyle(color: badgeColor, fontSize: 9.5, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary, height: 1.25),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textTertiary),
+          ],
+        ),
       ),
     );
   }
