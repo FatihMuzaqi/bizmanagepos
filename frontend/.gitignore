@@ -12,6 +12,8 @@
 .swiftpm/
 migrate_working_dir/
 
+tool/
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -32,6 +34,9 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+
+
+
 
 # Symbolication related
 app.*.symbols
