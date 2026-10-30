@@ -6,10 +6,8 @@
 
 # Dependencies
 node_modules/
-dokumentasi/
 package-lock.json.bak
-LAPORAN_PROYEK_USAHAKU.pdf
-MANUAL_BOOK_PANDUAN_USAHAKU.pdf
+
 
 # Logs
 logs/
