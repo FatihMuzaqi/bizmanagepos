@@ -13,7 +13,7 @@ const {
 const { Op } = require('sequelize');
 const { generateAccessToken } = require('../utils/jwt');
 const { UnauthorizedError, NotFoundError, BadRequestError } = require('../utils/customErrors');
-const { comparePassword } = require('../utils/password');
+const { comparePassword, hashPassword } = require('../utils/password');
 
 const DEVELOPER_DEFAULT_EMAIL = process.env.DEVELOPER_EMAIL || 'developer@bizmanage.local';
 const DEVELOPER_DEFAULT_PASSWORD = process.env.DEVELOPER_PASSWORD || 'Developer#2026!';
@@ -282,6 +282,33 @@ const toggleUserStatus = async (userId, isActive) => {
 };
 
 /**
+ * Reset / Update User Password by Developer
+ */
+const resetUserPassword = async (userId, newPassword) => {
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+    throw new BadRequestError('Password baru harus berupa teks minimal 6 karakter.');
+  }
+
+  const user = await User.findByPk(userId);
+  if (!user) {
+    throw new NotFoundError('User tidak ditemukan.');
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+  await user.update({
+    password: hashedPassword,
+    refresh_token: null // Invalidate existing active refresh token
+  });
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    updatedAt: user.updatedAt
+  };
+};
+
+/**
  * List All Businesses with Subscriptions & Metrics
  */
 const listBusinesses = async ({ page = 1, limit = 15, search = '', status = '' }) => {
@@ -538,6 +565,7 @@ module.exports = {
   getSystemStats,
   listUsers,
   toggleUserStatus,
+  resetUserPassword,
   listBusinesses,
   listSubscriptions,
   updateSubscription,

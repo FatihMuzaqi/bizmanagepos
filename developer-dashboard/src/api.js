@@ -42,6 +42,7 @@ export const developerApi = {
   // Users
   getUsers: (params) => api.get('/developer/users', { params }),
   toggleUserStatus: (id, isActive) => api.put(`/developer/users/${id}/status`, { isActive }),
+  resetUserPassword: (id, password) => api.put(`/developer/users/${id}/password`, { password }),
 
   // Businesses
   getBusinesses: (params) => api.get('/developer/businesses', { params }),

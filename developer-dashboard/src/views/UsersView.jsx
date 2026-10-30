@@ -13,6 +13,13 @@ import {
   Phone,
   Mail,
   AlertCircle,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  Check,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import { developerApi } from '../api';
 
@@ -24,6 +31,82 @@ export default function UsersView() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Password Reset Modal State
+  const [passwordModal, setPasswordModal] = useState({
+    isOpen: false,
+    user: null,
+    newPassword: '',
+    confirmPassword: '',
+    showPassword: false,
+    loading: false,
+    error: '',
+    success: '',
+  });
+
+  const openPasswordModal = (user) => {
+    setPasswordModal({
+      isOpen: true,
+      user,
+      newPassword: '',
+      confirmPassword: '',
+      showPassword: false,
+      loading: false,
+      error: '',
+      success: '',
+    });
+  };
+
+  const closePasswordModal = () => {
+    setPasswordModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const handleGeneratePassword = () => {
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const pass = `UsahaKu#${randomDigits}`;
+    setPasswordModal((prev) => ({
+      ...prev,
+      newPassword: pass,
+      confirmPassword: pass,
+      showPassword: true,
+      error: '',
+    }));
+  };
+
+  const handleSavePassword = async (e) => {
+    e.preventDefault();
+    if (!passwordModal.newPassword) {
+      setPasswordModal((prev) => ({ ...prev, error: 'Password baru tidak boleh kosong.' }));
+      return;
+    }
+    if (passwordModal.newPassword.length < 6) {
+      setPasswordModal((prev) => ({ ...prev, error: 'Password baru minimal harus 6 karakter.' }));
+      return;
+    }
+    if (passwordModal.newPassword !== passwordModal.confirmPassword) {
+      setPasswordModal((prev) => ({ ...prev, error: 'Konfirmasi password tidak cocok.' }));
+      return;
+    }
+
+    setPasswordModal((prev) => ({ ...prev, loading: true, error: '', success: '' }));
+    try {
+      await developerApi.resetUserPassword(passwordModal.user.id, passwordModal.newPassword);
+      setPasswordModal((prev) => ({
+        ...prev,
+        loading: false,
+        success: `Password akun ${passwordModal.user.name} berhasil diperbarui!`,
+      }));
+      setTimeout(() => {
+        closePasswordModal();
+      }, 1600);
+    } catch (err) {
+      setPasswordModal((prev) => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'Gagal mengubah password.',
+      }));
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -218,16 +301,27 @@ export default function UsersView() {
 
                       {/* Action */}
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => handleToggleStatus(user)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border ${
-                            user.is_active
-                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20'
-                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
-                          }`}
-                        >
-                          {user.is_active ? 'Blokir' : 'Aktifkan'}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openPasswordModal(user)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 transition cursor-pointer"
+                            title="Ubah / Reset Password Pengguna"
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                            <span>Password</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleToggleStatus(user)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border ${
+                              user.is_active
+                                ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20'
+                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
+                            }`}
+                          >
+                            {user.is_active ? 'Blokir' : 'Aktifkan'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -261,6 +355,157 @@ export default function UsersView() {
           </div>
         </div>
       </div>
+
+      {/* Modal Reset / Ubah Password */}
+      {passwordModal.isOpen && passwordModal.user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Ubah Password Pengguna</h3>
+                  <p className="text-xs text-slate-400">Atur ulang kata sandi akses akun pengguna</p>
+                </div>
+              </div>
+              <button
+                onClick={closePasswordModal}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSavePassword} className="p-5 space-y-4">
+              {/* User Info Card */}
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Nama Pengguna:</span>
+                  <span className="font-semibold text-white">{passwordModal.user.name}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Email:</span>
+                  <span className="font-mono text-slate-300">{passwordModal.user.email}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">ID Pengguna:</span>
+                  <span className="font-mono text-indigo-400">UID #{passwordModal.user.id}</span>
+                </div>
+              </div>
+
+              {/* Status Alert */}
+              {passwordModal.error && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{passwordModal.error}</span>
+                </div>
+              )}
+
+              {passwordModal.success && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{passwordModal.success}</span>
+                </div>
+              )}
+
+              {/* Password Baru */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300">Password Baru</label>
+                  <button
+                    type="button"
+                    onClick={handleGeneratePassword}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer transition font-medium"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Acak Password</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={passwordModal.showPassword ? 'text' : 'password'}
+                    value={passwordModal.newPassword}
+                    onChange={(e) =>
+                      setPasswordModal((prev) => ({ ...prev, newPassword: e.target.value, error: '' }))
+                    }
+                    placeholder="Minimal 6 karakter..."
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPasswordModal((prev) => ({ ...prev, showPassword: !prev.showPassword }))
+                    }
+                    className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                  >
+                    {passwordModal.showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Konfirmasi Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300">Konfirmasi Password Baru</label>
+                <div className="relative">
+                  <input
+                    type={passwordModal.showPassword ? 'text' : 'password'}
+                    value={passwordModal.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordModal((prev) => ({ ...prev, confirmPassword: e.target.value, error: '' }))
+                    }
+                    placeholder="Ulangi password baru..."
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPasswordModal((prev) => ({ ...prev, showPassword: !prev.showPassword }))
+                    }
+                    className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 cursor-pointer"
+                  >
+                    {passwordModal.showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Notice */}
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Catatan: Setelah password diubah, sesi aktif pengguna di aplikasi POS / web akan otomatis di-reset untuk keamanan.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={closePasswordModal}
+                  disabled={passwordModal.loading}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={passwordModal.loading}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm shadow-indigo-500/20"
+                >
+                  {passwordModal.loading ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <KeyRound className="w-3.5 h-3.5" />
+                  )}
+                  <span>Simpan Password</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

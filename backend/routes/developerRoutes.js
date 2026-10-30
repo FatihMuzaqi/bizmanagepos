@@ -15,6 +15,7 @@ router.get('/stats', developerController.getStats);
 // 3. User Control & Monitoring
 router.get('/users', developerController.getUsers);
 router.put('/users/:id/status', developerController.toggleUser);
+router.put('/users/:id/password', developerController.resetUserPassword);
 
 // 4. Business Control & Monitoring
 router.get('/businesses', developerController.getBusinesses);

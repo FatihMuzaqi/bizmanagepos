@@ -36,6 +36,15 @@ const toggleUser = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Reset / Update User Password by Developer
+ */
+const resetUserPassword = asyncHandler(async (req, res) => {
+  const { password } = req.body;
+  const user = await developerService.resetUserPassword(req.params.id, password);
+  return successResponse(res, `Password user ${user.name} (${user.email}) berhasil diperbarui`, user);
+});
+
+/**
  * Get List of Businesses
  */
 const getBusinesses = asyncHandler(async (req, res) => {
@@ -104,6 +113,7 @@ module.exports = {
   getStats,
   getUsers,
   toggleUser,
+  resetUserPassword,
   getBusinesses,
   getSubscriptions,
   updateSubscription,
