@@ -2,6 +2,7 @@ const {
   User,
   Business,
   BusinessUser,
+  Role,
   Outlet,
   Subscription,
   SubscriptionPlan,
@@ -255,12 +256,58 @@ const listUsers = async ({ page = 1, limit = 15, search = '' }) => {
             include: [{ model: SubscriptionPlan, as: 'plan', attributes: ['id', 'name', 'price', 'code'] }]
           }
         ]
+      },
+      {
+        model: BusinessUser,
+        as: 'businessMemberships',
+        attributes: ['id', 'business_id', 'is_owner'],
+        required: false,
+        include: [
+          {
+            model: Role,
+            as: 'roles',
+            attributes: ['id', 'name'],
+            through: { attributes: [] }
+          }
+        ]
       }
     ]
   });
 
+  const formattedUsers = rows.map((u) => {
+    const userJson = u.toJSON();
+    const isOwner = (userJson.ownedBusinesses && userJson.ownedBusinesses.length > 0) ||
+      (userJson.businessMemberships && userJson.businessMemberships.some((bm) => bm.is_owner));
+
+    const rolesSet = new Set();
+    if (isOwner) {
+      rolesSet.add('Owner');
+    }
+
+    if (userJson.businessMemberships) {
+      userJson.businessMemberships.forEach((bm) => {
+        if (bm.roles && Array.isArray(bm.roles)) {
+          bm.roles.forEach((r) => {
+            if (r.name) {
+              rolesSet.add(r.name);
+            }
+          });
+        }
+      });
+    }
+
+    if (rolesSet.size === 0) {
+      rolesSet.add('User');
+    }
+
+    const roles = Array.from(rolesSet);
+    userJson.roles = roles;
+    userJson.primaryRole = isOwner ? 'Owner' : (roles[0] || 'User');
+    return userJson;
+  });
+
   return {
-    users: rows,
+    users: formattedUsers,
     total: count,
     page: Number(page),
     limit: Number(limit),

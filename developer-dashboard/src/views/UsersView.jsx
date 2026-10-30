@@ -20,6 +20,9 @@ import {
   Check,
   Sparkles,
   X,
+  Crown,
+  CreditCard,
+  UserCheck,
 } from 'lucide-react';
 import { developerApi } from '../api';
 
@@ -106,6 +109,54 @@ export default function UsersView() {
         error: err.message || 'Gagal mengubah password.',
       }));
     }
+  };
+
+  const renderRoleBadge = (user) => {
+    if (!user) return null;
+    const roles = user.roles || (user.ownedBusinesses?.length > 0 ? ['Owner'] : ['User']);
+    const isOwner = roles.includes('Owner');
+    const isCashier = roles.some(
+      (r) => r.toLowerCase().includes('cashier') || r.toLowerCase().includes('kasir')
+    );
+    const isAdmin = roles.some(
+      (r) =>
+        r.toLowerCase().includes('admin') ||
+        r.toLowerCase().includes('manager') ||
+        r.toLowerCase().includes('manajer')
+    );
+
+    if (isOwner) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm shadow-amber-500/5">
+          <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>Owner (Pemilik)</span>
+        </span>
+      );
+    }
+
+    if (isCashier) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
+          <CreditCard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          <span>Kasir (Cashier)</span>
+        </span>
+      );
+    }
+
+    if (isAdmin) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-sm shadow-blue-500/5">
+          <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          <span>Admin / Manajer</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800 text-slate-400 border border-slate-700/60">
+        <span>{roles[0] || 'User'}</span>
+      </span>
+    );
   };
 
   const fetchUsers = async () => {
@@ -201,6 +252,7 @@ export default function UsersView() {
               <tr className="border-b border-slate-800 bg-slate-950/40 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
                 <th className="py-3.5 px-4">Pengguna</th>
                 <th className="py-3.5 px-4">Kontak</th>
+                <th className="py-3.5 px-4">Role / Peran</th>
                 <th className="py-3.5 px-4">Bisnis / Usaha</th>
                 <th className="py-3.5 px-4">Status Akun</th>
                 <th className="py-3.5 px-4">Tgl Terdaftar</th>
@@ -210,14 +262,14 @@ export default function UsersView() {
             <tbody className="divide-y divide-slate-800/60 text-xs text-slate-300">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-500">
+                  <td colSpan="7" className="py-12 text-center text-slate-500">
                     <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                     Memuat data pengguna...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-500">
+                  <td colSpan="7" className="py-12 text-center text-slate-500">
                     Tidak ada pengguna yang cocok dengan pencarian.
                   </td>
                 </tr>
@@ -253,6 +305,11 @@ export default function UsersView() {
                             <span>{user.phone}</span>
                           </div>
                         )}
+                      </td>
+
+                      {/* Role / Peran */}
+                      <td className="py-3.5 px-4">
+                        {renderRoleBadge(user)}
                       </td>
 
                       {/* Owned Businesses */}
@@ -394,6 +451,10 @@ export default function UsersView() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">ID Pengguna:</span>
                   <span className="font-mono text-indigo-400">UID #{passwordModal.user.id}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/40">
+                  <span className="text-slate-400">Role / Peran:</span>
+                  <div>{renderRoleBadge(passwordModal.user)}</div>
                 </div>
               </div>
 
