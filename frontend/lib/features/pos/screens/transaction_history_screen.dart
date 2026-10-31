@@ -105,16 +105,19 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         children: [
           // Filter Tabs
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: AppColors.surface,
-            child: Row(
-              children: [
-                _buildFilterChip('Semua Status', null),
-                const SizedBox(width: 8),
-                _buildFilterChip('Selesai', 'COMPLETED'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Dibatalkan', 'CANCELLED'),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('Semua Status', null),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Selesai', 'COMPLETED'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Dibatalkan', 'CANCELLED'),
+                ],
+              ),
             ),
           ),
           const Divider(height: 1),
@@ -155,12 +158,12 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                               side: const BorderSide(color: AppColors.cardBorder),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               child: Row(
                                 children: [
                                   Container(
-                                    width: 44,
-                                    height: 44,
+                                    width: 42,
+                                    height: 42,
                                     decoration: BoxDecoration(
                                       color: isCancelled
                                           ? AppColors.errorContainer
@@ -172,63 +175,73 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                           ? Icons.cancel_outlined
                                           : Icons.receipt_long_rounded,
                                       color: isCancelled ? AppColors.error : AppColors.success,
+                                      size: 22,
                                     ),
                                   ),
-                                  const SizedBox(width: 14),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              invoice,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
-                                                fontFamily: 'monospace',
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: isCancelled
-                                                    ? AppColors.errorContainer
-                                                    : AppColors.successContainer,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                isCancelled ? 'BATAL' : 'SELESAI',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isCancelled ? AppColors.error : AppColors.success,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                        Text(
+                                          invoice,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            fontFamily: 'monospace',
+                                            letterSpacing: -0.2,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 3),
                                         Text(
                                           '${DateFormatter.formatDateTime(createdAt)} • $method',
-                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Text(
-                                    CurrencyFormatter.format(total),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: isCancelled ? AppColors.textTertiary : AppColors.textPrimary,
-                                      decoration: isCancelled ? TextDecoration.lineThrough : null,
-                                    ),
-                                  ),
                                   const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isCancelled
+                                              ? AppColors.errorContainer
+                                              : AppColors.successContainer,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          isCancelled ? 'BATAL' : 'SELESAI',
+                                          style: TextStyle(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: isCancelled ? AppColors.error : AppColors.success,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        CurrencyFormatter.format(total),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13.5,
+                                          color: isCancelled ? AppColors.textTertiary : AppColors.textPrimary,
+                                          decoration: isCancelled ? TextDecoration.lineThrough : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                   PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert, size: 20),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
                                     onSelected: (action) {
                                       if (action == 'view') {
                                         showDialog(

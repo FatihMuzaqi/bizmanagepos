@@ -26,9 +26,11 @@ void main() async {
   await StorageService.init();
   try {
     await initializeDateFormatting('id_ID', null);
+    await initializeDateFormatting('id', null);
+    await initializeDateFormatting();
     Intl.defaultLocale = 'id_ID';
   } catch (e) {
-    debugPrint('⚠️ [UsahaKu] Failed to initialize id_ID date formatting: $e');
+    debugPrint('⚠️ [UsahaKu] Failed to initialize date formatting: $e');
   }
 
   debugPrint('🚀 [UsahaKu] Base API URL: ${AppConfig.baseUrl}');

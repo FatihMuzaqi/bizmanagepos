@@ -18,6 +18,11 @@ import '../../../core/utils/ui_helpers.dart';
 import '../providers/report_provider.dart';
 
 class ReportExportService {
+  static const List<String> _monthsIndo = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+
   /// Safely format date with Indonesian locale fallback
   static String _formatIndonesianDate(DateTime date, [String pattern = 'dd MMMM yyyy, HH:mm']) {
     try {
@@ -26,8 +31,34 @@ class ReportExportService {
       try {
         return DateFormat(pattern).format(date);
       } catch (_) {
-        return '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+        final monthName = (date.month >= 1 && date.month <= 12)
+            ? _monthsIndo[date.month - 1]
+            : '${date.month}';
+        final d = date.day.toString().padLeft(2, '0');
+        final y = date.year;
+        final h = date.hour.toString().padLeft(2, '0');
+        final m = date.minute.toString().padLeft(2, '0');
+        return '$d $monthName $y, $h:$m';
       }
+    }
+  }
+
+  /// Safely format numeric timestamp without locale dependencies
+  static String _formatTimestamp(DateTime dt, [bool withSeconds = false]) {
+    try {
+      final pattern = withSeconds ? 'yyyyMMdd_HHmmss' : 'yyyyMMdd_HHmm';
+      return DateFormat(pattern).format(dt);
+    } catch (_) {
+      final y = dt.year.toString().padLeft(4, '0');
+      final m = dt.month.toString().padLeft(2, '0');
+      final d = dt.day.toString().padLeft(2, '0');
+      final h = dt.hour.toString().padLeft(2, '0');
+      final min = dt.minute.toString().padLeft(2, '0');
+      if (withSeconds) {
+        final s = dt.second.toString().padLeft(2, '0');
+        return '$y$m${d}_$h$min$s';
+      }
+      return '$y$m${d}_$h$min';
     }
   }
 
@@ -372,7 +403,7 @@ class ReportExportService {
         ),
       );
 
-      final fileName = 'Laporan_Keuangan_${rep.selectedPreset}_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.pdf';
+      final fileName = 'Laporan_Keuangan_${rep.selectedPreset}_${_formatTimestamp(DateTime.now())}.pdf';
 
       // Open PDF Preview & Print Layout (allows saving, printing, or sharing directly)
       await Printing.layoutPdf(
@@ -425,7 +456,7 @@ class ReportExportService {
       final businessName = StorageService.getActiveBusinessName() ?? 'UsahaKu';
       final outletName = StorageService.getActiveOutletName() ?? 'Semua Cabang';
       final presetLabel = getPresetLabel(rep.selectedPreset);
-      final currentDateStr = DateFormat('dd MMMM yyyy HH:mm').format(DateTime.now());
+      final currentDateStr = _formatIndonesianDate(DateTime.now());
 
       final sales = rep.salesReport;
       final dashboard = rep.dashboardData;
@@ -667,7 +698,7 @@ class ReportExportService {
 
       xmlBuffer.writeln('</Workbook>');
 
-      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final timestamp = _formatTimestamp(DateTime.now(), true);
       final fileName = 'Laporan_Keuangan_${rep.selectedPreset}_$timestamp.xls';
 
       // Cross-platform save: Web (browser download) vs Native (File storage)
@@ -789,7 +820,7 @@ class ReportExportService {
       final businessName = StorageService.getActiveBusinessName() ?? 'UsahaKu';
       final outletName = StorageService.getActiveOutletName() ?? 'Semua Cabang';
       final presetLabel = getPresetLabel(rep.selectedPreset);
-      final currentDateStr = DateFormat('dd MMMM yyyy HH:mm').format(DateTime.now());
+      final currentDateStr = _formatIndonesianDate(DateTime.now());
 
       final sales = rep.salesReport;
       final dashboard = rep.dashboardData;
@@ -846,7 +877,7 @@ class ReportExportService {
         }
       }
 
-      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final timestamp = _formatTimestamp(DateTime.now(), true);
       final fileName = 'Laporan_Keuangan_${rep.selectedPreset}_$timestamp.csv';
 
       // Cross-platform save: Web (browser download) vs Native (File storage)
